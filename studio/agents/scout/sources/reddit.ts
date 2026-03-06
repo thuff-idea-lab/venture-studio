@@ -1,5 +1,6 @@
 import Parser from 'rss-parser';
 import sources from '../../../config/sources.json';
+import { logger } from '../../../lib/logger';
 import type { RawPost } from '../types';
 
 const parser = new Parser({
@@ -21,6 +22,10 @@ function isRejected(title: string): boolean {
   return REJECT_PATTERNS.some(p => p.test(title));
 }
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, '').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export async function fetchRSSFeeds(): Promise<RawPost[]> {
   const rssFeeds = sources.feeds.filter(s => s.type === 'rss');
   const posts: RawPost[] = [];
@@ -34,13 +39,14 @@ export async function fetchRSSFeeds(): Promise<RawPost[]> {
 
         posts.push({
           title: item.title,
-          body: item.contentSnippet,
+          // contentSnippet = from <content:encoded> (most RSS); summary = from <description> (Reddit RSS)
+          body: item.contentSnippet || (item.summary ? stripHtml(item.summary).slice(0, 500) : undefined),
           url: item.link,
           platform: source.name,
         });
       }
-    } catch {
-      // individual feed failures logged by caller
+    } catch (err: any) {
+      logger.warn('scout', `RSS feed failed [${source.name}]: ${err?.message ?? err}`);
     }
   }
 

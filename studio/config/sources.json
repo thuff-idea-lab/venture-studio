@@ -25,6 +25,42 @@
       "note": "Developer pain points and tools"
     },
     {
+      "name": "reddit_saas",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/SaaS.rss",
+      "note": "SaaS builders: pain points, tool gaps, requests"
+    },
+    {
+      "name": "reddit_entrepreneur",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/Entrepreneur.rss",
+      "note": "Entrepreneur operational pain and workflows"
+    },
+    {
+      "name": "reddit_smallbusiness",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/smallbusiness.rss",
+      "note": "Small business owner pain: invoicing, ops, admin"
+    },
+    {
+      "name": "reddit_freelance",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/freelance.rss",
+      "note": "Freelancer workflow pain: billing, clients, time tracking"
+    },
+    {
+      "name": "reddit_microsaas",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/microsaas.rss",
+      "note": "Micro-SaaS community: gaps and niche opportunities"
+    },
+    {
+      "name": "reddit_webdev",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/webdev.rss",
+      "note": "Web developer tool requests and workflow friction"
+    },
+    {
       "name": "hacker_news_ask",
       "type": "api",
       "url": "https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn"
