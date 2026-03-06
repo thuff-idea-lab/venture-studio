@@ -56,7 +56,7 @@ export async function runPlanner(): Promise<void> {
   logger.info(AGENT, 'Planner complete');
 }
 
-async function generatePlan(idea: any, evaluation: any): Promise<object> {
+async function generatePlan(idea: any, evaluation: any): Promise<Record<string, any>> {
   const prompt = `
 You are a lean startup advisor. Generate a concise MVP project plan as valid JSON.
 
