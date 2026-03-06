@@ -108,17 +108,16 @@ export async function runScout(): Promise<IdeaRecord[]> {
   if (rssResult.status === 'fulfilled') rawPosts.push(...rssResult.value);
   else logger.warn(AGENT, 'RSS fetch failed', rssResult.reason);
 
-  // Cap at 150 (the daily low-tier quota) — rate limiter controls throughput
-  const MAX_LLM_PER_RUN = 150;
-  const postsToProcess = rawPosts.slice(0, MAX_LLM_PER_RUN);
-  logger.info(AGENT, `Stage 1: ${rawPosts.length} raw posts, processing ${postsToProcess.length} through LLM`);
+  // Daily quota is 20,000 (Copilot Pro, low-tier models) — no artificial cap needed.
+  // Per-minute limit of 15 is handled by the sleep below.
+  logger.info(AGENT, `Stage 1: ${rawPosts.length} raw posts to process`);
 
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
   // Stage 2: LLM extraction — sequential with rate limiting (< 15 calls/min)
   const extracted: IdeaRecord[] = [];
 
-  for (const post of postsToProcess) {
+  for (const post of rawPosts) {
     try {
       await sleep(4200); // Rate limit: stay under 15 calls/min for GitHub Models
       logger.info(AGENT, `LLM extracting: [${post.platform}] ${post.title}`);
