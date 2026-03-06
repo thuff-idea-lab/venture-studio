@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EvaluationRecord",
+  "type": "object",
+  "required": ["ideaTitle", "scoreTotal", "scoreBreakdown", "recommendation"],
+  "properties": {
+    "ideaTitle": { "type": "string" },
+    "scoreTotal": { "type": "number", "minimum": 0, "maximum": 100 },
+    "scoreBreakdown": {
+      "type": "object",
+      "required": ["demand", "monetization", "competition", "automationPotential", "buildComplexity"],
+      "properties": {
+        "demand": { "type": "number" },
+        "monetization": { "type": "number" },
+        "competition": { "type": "number" },
+        "automationPotential": { "type": "number" },
+        "buildComplexity": { "type": "number" }
+      }
+    },
+    "recommendation": { "type": "string", "enum": ["DROP", "WATCH", "BUILD"] },
+    "notes": { "type": "string" }
+  }
+}

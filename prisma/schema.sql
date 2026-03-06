@@ -1,0 +1,50 @@
+-- CreateTable
+CREATE TABLE "ideas" (
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    "title" TEXT NOT NULL,
+    "summary" TEXT NOT NULL,
+    "evidence" JSONB NOT NULL DEFAULT '[]',
+    "sources" JSONB NOT NULL DEFAULT '[]',
+    "keywords" TEXT[] NOT NULL DEFAULT '{}',
+    "tags" TEXT[] NOT NULL DEFAULT '{}',
+    "asset_type_hint" TEXT NOT NULL DEFAULT 'unknown',
+    "evaluated_at" TIMESTAMPTZ,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT "ideas_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "evaluations" (
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    "idea_id" TEXT NOT NULL,
+    "score_total" INTEGER NOT NULL,
+    "score_breakdown" JSONB NOT NULL DEFAULT '{}',
+    "recommendation" TEXT NOT NULL,
+    "notes" TEXT NOT NULL DEFAULT '',
+    "project_created_at" TIMESTAMPTZ,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT "evaluations_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "evaluations_idea_id_fkey" FOREIGN KEY ("idea_id") REFERENCES "ideas"("id") ON DELETE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "projects" (
+    "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    "idea_id" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "project_type" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PLANNED',
+    "plan" JSONB NOT NULL DEFAULT '{}',
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT "projects_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "projects_slug_key" UNIQUE ("slug"),
+    CONSTRAINT "projects_idea_id_fkey" FOREIGN KEY ("idea_id") REFERENCES "ideas"("id") ON DELETE CASCADE
+);
+
+-- Index for fast lookups
+CREATE INDEX "ideas_evaluated_at_idx" ON "ideas"("evaluated_at");
+CREATE INDEX "evaluations_recommendation_idx" ON "evaluations"("recommendation");
+CREATE INDEX "projects_status_idx" ON "projects"("status");

@@ -1,0 +1,2 @@
+// Project folders are created by the Planner agent at runtime.
+// Each project lives in its own subdirectory: active/<slug>/

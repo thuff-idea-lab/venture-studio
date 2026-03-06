@@ -1,0 +1,41 @@
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+
+# Testing
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Prisma
+prisma/migrations/dev/
+
+# Agent outputs (optional — remove if you want to commit snapshots)
+studio/out/*.ndjson

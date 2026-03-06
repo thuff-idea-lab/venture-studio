@@ -1,0 +1,34 @@
+{
+  "name": "venture-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered venture studio — Scout, Evaluate, Plan, Build, Scale",
+  "scripts": {
+    "scout": "ts-node scripts/run-agent.ts scout",
+    "evaluator": "ts-node scripts/run-agent.ts evaluator",
+    "planner": "ts-node scripts/run-agent.ts planner",
+    "pipeline": "ts-node scripts/run-pipeline.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "dashboard": "cd apps/dashboard && npm run dev",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0",
+    "@supabase/supabase-js": "^2.0.0",
+    "ajv": "^8.0.0",
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.0.0",
+    "rss-parser": "^3.13.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "prisma": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}

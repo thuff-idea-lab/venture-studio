@@ -1,0 +1,37 @@
+{
+  "feeds": [
+    {
+      "name": "reddit_entrepreneur",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/entrepreneur/new/.rss",
+      "note": "READ ONLY — never post"
+    },
+    {
+      "name": "reddit_sidehustle",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/sidehustle/new/.rss",
+      "note": "READ ONLY — never post"
+    },
+    {
+      "name": "reddit_saas",
+      "type": "rss",
+      "url": "https://www.reddit.com/r/SaaS/new/.rss",
+      "note": "READ ONLY — never post"
+    },
+    {
+      "name": "hacker_news_ask",
+      "type": "api",
+      "url": "https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn"
+    },
+    {
+      "name": "hacker_news_show",
+      "type": "api",
+      "url": "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn"
+    },
+    {
+      "name": "indie_hackers",
+      "type": "rss",
+      "url": "https://www.indiehackers.com/feed.rss"
+    }
+  ]
+}

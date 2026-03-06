@@ -1,0 +1,12 @@
+{
+  "demand": 0.30,
+  "monetization": 0.25,
+  "competition": 0.20,
+  "automationPotential": 0.15,
+  "buildComplexity": 0.10,
+  "thresholds": {
+    "BUILD": 65,
+    "WATCH": 45,
+    "DROP": 0
+  }
+}
