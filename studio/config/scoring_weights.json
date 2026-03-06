@@ -1,12 +1,14 @@
 {
-  "demand": 0.30,
-  "monetization": 0.25,
-  "competition": 0.20,
-  "automationPotential": 0.15,
-  "buildComplexity": 0.10,
+  "painClarity":    0.20,
+  "userClarity":    0.10,
+  "monetization":   0.15,
+  "mvpFeasibility": 0.15,
+  "founderFit":     0.20,
+  "distribution":   0.10,
+  "repeatability":  0.10,
   "thresholds": {
-    "BUILD": 65,
-    "WATCH": 45,
+    "BUILD": 75,
+    "WATCH": 60,
     "DROP": 0
   }
 }

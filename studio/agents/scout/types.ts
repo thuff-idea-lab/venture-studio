@@ -8,14 +8,22 @@ export interface RawPost {
 }
 
 export interface IdeaRecord {
-  // Structured opportunity brief (LLM-extracted)
+  // Core opportunity brief (LLM-extracted by Scout V3)
   title: string;
   audience: string;
   pain: string;
   workaround: string;
+  frequency: string;
+  mvpIdea: string;
   productPossibilities: string[];
   monetization: string[];
+  distributionPaths: string[];
+  founderFitReason: string[];
+  expansionPaths: string[];
+  sourceExcerpt: string;
   confidence: 'low' | 'medium' | 'high';
+  whyNow: string;
+  founderFitScore: number; // 1-10, LLM self-assessed
   // Signal strength
   signalCount: number;
   sourceCluster: Array<{ platform: string; url: string; context?: string }>;
@@ -25,5 +33,5 @@ export interface IdeaRecord {
   sources: Array<{ platform: string; url: string; context?: string }>;
   keywords: string[];
   tags: string[];
-  assetTypeHint: 'website' | 'directory' | 'saas' | 'youtube' | 'newsletter' | 'bot' | 'data' | 'unknown';
+  assetTypeHint: 'website' | 'directory' | 'saas' | 'youtube' | 'newsletter' | 'bot' | 'data' | 'calculator' | 'comparison' | 'dashboard' | 'unknown';
 }

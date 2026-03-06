@@ -68,7 +68,15 @@
     "tags": { "type": "array", "items": { "type": "string" } },
     "assetTypeHint": {
       "type": "string",
-      "enum": ["website", "directory", "saas", "youtube", "newsletter", "bot", "data", "unknown"]
-    }
+      "enum": ["website", "directory", "saas", "youtube", "newsletter", "bot", "data", "calculator", "comparison", "dashboard", "unknown"]
+    },
+    "frequency": { "type": "string", "description": "How often the pain occurs" },
+    "mvpIdea": { "type": "string", "description": "Smallest useful first product" },
+    "distributionPaths": { "type": "array", "items": { "type": "string" }, "description": "Ways to reach first users" },
+    "founderFitReason": { "type": "array", "items": { "type": "string" }, "description": "Why this fits a product-minded software founder" },
+    "expansionPaths": { "type": "array", "items": { "type": "string" }, "description": "Growth directions" },
+    "sourceExcerpt": { "type": "string", "description": "Quote or paraphrase from the source showing the pain" },
+    "whyNow": { "type": "string", "description": "Why this is an actionable opportunity right now" },
+    "founderFitScore": { "type": "integer", "minimum": 1, "maximum": 10, "description": "LLM self-assessed founder fit score (1-10)" }
   }
 }
