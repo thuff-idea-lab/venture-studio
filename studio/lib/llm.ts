@@ -3,7 +3,7 @@ dotenv.config();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export type LLMProvider = 'github' | 'anthropic' | 'ollama';
+export type LLMProvider = 'github' | 'openai' | 'anthropic' | 'ollama';
 
 export interface LLMOptions {
   model?: string;
@@ -27,6 +27,7 @@ export async function callLLM(
     ?? 'github';
 
   switch (provider) {
+    case 'openai':    return callOpenAI(prompt, options);
     case 'github':    return callGitHubModels(prompt, options);
     case 'anthropic': return callClaude(prompt, options);
     case 'ollama':    return callOllama(prompt, options);
@@ -35,6 +36,20 @@ export async function callLLM(
 }
 
 // ── Providers ─────────────────────────────────────────────────────────────────
+
+async function callOpenAI(prompt: string, options: LLMOptions): Promise<string> {
+  const { OpenAI } = await import('openai');
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY not set in .env');
+
+  const client = new OpenAI({ apiKey });
+  const completion = await client.chat.completions.create({
+    model: options.model ?? 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    temperature: options.temperature ?? 0.3,
+  });
+  return completion.choices[0].message.content ?? '';
+}
 
 async function callGitHubModels(prompt: string, options: LLMOptions): Promise<string> {
   const token = process.env.GITHUB_TOKEN;

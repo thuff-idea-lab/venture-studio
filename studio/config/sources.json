@@ -4,71 +4,25 @@
       "name": "product_hunt",
       "type": "rss",
       "url": "https://www.producthunt.com/feed",
-      "note": "Product launches"
-    },
-    {
-      "name": "hacker_news_rss",
-      "type": "rss",
-      "url": "https://news.ycombinator.com/rss",
-      "note": "HN front page via RSS"
-    },
-    {
-      "name": "lobsters",
-      "type": "rss",
-      "url": "https://lobste.rs/rss",
-      "note": "High signal tech community"
+      "note": "Product launches — reveals what categories already have tools (gaps + incumbents)"
     },
     {
       "name": "devto",
       "type": "rss",
       "url": "https://dev.to/feed",
-      "note": "Developer pain points and tools"
-    },
-    {
-      "name": "reddit_saas",
-      "type": "rss",
-      "url": "https://www.reddit.com/r/SaaS.rss",
-      "note": "SaaS builders: pain points, tool gaps, requests"
-    },
-    {
-      "name": "reddit_entrepreneur",
-      "type": "rss",
-      "url": "https://www.reddit.com/r/Entrepreneur.rss",
-      "note": "Entrepreneur operational pain and workflows"
-    },
-    {
-      "name": "reddit_smallbusiness",
-      "type": "rss",
-      "url": "https://www.reddit.com/r/smallbusiness.rss",
-      "note": "Small business owner pain: invoicing, ops, admin"
-    },
-    {
-      "name": "reddit_freelance",
-      "type": "rss",
-      "url": "https://www.reddit.com/r/freelance.rss",
-      "note": "Freelancer workflow pain: billing, clients, time tracking"
-    },
-    {
-      "name": "reddit_microsaas",
-      "type": "rss",
-      "url": "https://www.reddit.com/r/microsaas.rss",
-      "note": "Micro-SaaS community: gaps and niche opportunities"
-    },
-    {
-      "name": "reddit_webdev",
-      "type": "rss",
-      "url": "https://www.reddit.com/r/webdev.rss",
-      "note": "Web developer tool requests and workflow friction"
+      "note": "Developer workflow pain points and tool requests"
     },
     {
       "name": "hacker_news_ask",
       "type": "api",
-      "url": "https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn"
+      "url": "https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn",
+      "note": "Ask HN — people literally asking for solutions to problems"
     },
     {
       "name": "hacker_news_show",
       "type": "api",
-      "url": "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn"
+      "url": "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn",
+      "note": "Show HN — reveals what builders are shipping, category signal"
     }
   ]
 }

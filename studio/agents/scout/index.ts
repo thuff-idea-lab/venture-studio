@@ -5,87 +5,91 @@ import { logger } from '../../lib/logger';
 import { db } from '../../lib/db';
 import { callLLM } from '../../lib/llm';
 import { fetchRSSFeeds } from './sources/reddit';
+import { fetchRedditIntentSearch } from './sources/reddit-search';
 import { fetchHackerNews } from './sources/hackernews';
 import type { RawPost, IdeaRecord } from './types';
 
 const AGENT = 'scout';
 
-// ── LLM extraction prompt ─────────────────────────────────────────────────────
+// ── LLM extraction prompt (v2 — 100-point scoring) ────────────────────────────
 
-const SYSTEM_PROMPT = `You are a venture scout for a one-person software business builder. Your ONLY job is to find posts that reveal real, repeated, monetizable operational pain — and extract them as structured opportunity briefs.
+const SYSTEM_PROMPT = `You are an opportunity researcher for a one-person software business builder.
+
+Your ONLY job is to find posts that reveal real, repeated, monetizable operational pain — and score them as structured opportunity briefs.
 
 FOUNDER CONTEXT
-The founder builds software: products, tools, dashboards, automations, APIs, content-plus-software businesses, comparison sites, directories. They ship fast. They are NOT a security expert, compliance specialist, infrastructure engineer, deep ML researcher, or hardware builder. Reject anything that requires those skills.
+The founder builds software: products, tools, dashboards, automations, APIs, comparison sites, directories. They ship fast and solo. They are NOT a security expert, compliance specialist, infrastructure engineer, deep ML researcher, or hardware builder.
 
 AUTO-REJECT — return only the word REJECT if any are true:
-- generic tech news, trend commentary, AI model releases, or culture discussion
-- politics, outages, or isolated one-off rants
+- generic tech news, trend commentary, AI model releases, culture discussion
+- politics, outages, or rants
 - no specific nameable user group
 - no concrete recurring workflow or operational pain
 - security, cryptography, or compliance is the core value proposition
 - deep infrastructure, distributed systems, or kernel engineering
-- enterprise-grade trust or credibility required from day one
-- research-grade machine learning or scientific depth required
+- enterprise trust required from day one
+- research-grade ML or scientific depth required
 - hardware-first execution
-- no plausible V1 the founder could ship in days to a few weeks without specialist expertise
+- no plausible V1 without specialist expertise
 
 QUALIFICATIONS — ALL must be true to survive:
-1. Specific nameable user segment (not "businesses", "developers", "everyone", "consumers")
-2. Concrete recurring operational pain — not opinions, hot takes, news, or one-off events
-3. Problem happens regularly (every sale, invoice, project, publish cycle, or buying decision)
+1. Specific nameable user segment (not "businesses", "developers", "everyone")
+2. Concrete recurring operational pain — not opinions or hot takes
+3. Problem happens regularly (per sale, invoice, project, publish, buying decision)
 4. A realistic small V1 can be described (tool, calculator, comparison site, dashboard, directory, automation)
-5. At least one believable monetization path exists
-6. Founder could ship a useful V1 in days to a few weeks with no specialist expertise
+5. At least one clear monetization path exists
+6. Founder could ship a useful V1 without specialist expertise
 
-FAVORED V1 SHAPES (score these higher when extracting confidence):
-workflow automation tool / niche SaaS subscription / calculator or estimator / comparison or affiliate site / directory or data product / dashboard or reporting layer / decision-support tool / AI-assisted helper / research layer / content-plus-software site
-
-TASTE EXAMPLES
-
-GOOD: "Service business owners manually chasing unpaid invoices by emailing from Gmail and updating a spreadsheet"
-Why: clear user, recurring pain per-transaction, ugly manual workaround, obvious SaaS wedge, easy distribution in small business communities, clear subscription monetization
-
-GOOD: "Buyers researching robot mowers who can't cleanly compare specs and setup complexity across brands"
-Why: comparison pain per-buying-decision, strong affiliate revenue angle, calculator or quiz V1, content-plus-software, SEO-friendly distribution
-
-BAD: "New XOR encryption tool for red-team penetration testers"
-Why: specialist domain, trust-sensitive, outside founder range, hard to distribute, hard to support — REJECT
-
-BAD: "GPT-5 release gets lots of comments on HN"
-Why: trend discussion, no user workflow, no wedge, no monetization path — REJECT
+FAVORED OPPORTUNITY TYPES:
+- ugly boring manual workflows (spreadsheet, manual email, copy-paste)
+- repetitive tasks done every sale/invoice/project
+- comparison confusion (too many options, no good comparison tool)
+- fragmented information (data exists but isn't searchable/organized)
+- expensive or bloated incumbents with obvious niche gaps
+- buying friction (research takes too long, specs are hard to compare)
 
 If the post does NOT qualify, return only: REJECT
 
-If it qualifies, return ONLY a valid JSON object. No markdown fences, no explanation, no text outside the JSON:
+If it qualifies, return ONLY valid JSON. No markdown, no explanation:
 {
   "title": "5-8 word opportunity name",
   "audience": "specific user segment — narrow and designable",
   "pain": "one-sentence concrete recurring operational pain",
-  "workaround": "what they do today instead (be specific — spreadsheet, manual email, 3 tools, nothing)",
+  "workaround": "what they do today instead (spreadsheet, manual email, nothing, 3 tools)",
   "frequency": "daily | weekly | monthly | per transaction | per buying decision | unknown",
-  "mvp_idea": "the smallest useful first product in one sentence",
+  "mvp_idea": "smallest useful first product in one sentence",
   "product_possibilities": ["V1 shapes that fit this pain"],
   "monetization": ["realistic revenue paths"],
   "distribution_paths": ["specific ways to reach first users"],
-  "founder_fit_reason": ["why a product-minded software builder can ship this without specialist expertise"],
-  "expansion_paths": ["how this could grow over time"],
-  "source_excerpt": "short quote or paraphrase from the post that shows the pain",
-  "confidence": "low | medium | high",
-  "why_now": "one sentence: why this is an actionable opportunity right now",
+  "founder_fit_reason": ["why a product-minded software builder can ship this"],
+  "expansion_paths": ["how this could grow"],
+  "source_excerpt": "short quote or paraphrase showing the pain",
+  "why_now": "one sentence: why this is actionable right now",
   "asset_type_hint": "saas | directory | newsletter | website | calculator | comparison | dashboard | unknown",
-  "founder_fit_score": 7
+  "score_breakdown": {
+    "pain_clarity": 0,
+    "user_segment_clarity": 0,
+    "monetization_potential": 0,
+    "mvp_feasibility": 0,
+    "repeatability": 0,
+    "distribution_clarity": 0,
+    "expansion_potential": 0,
+    "product_leverage": 0,
+    "founder_fit": 0
+  },
+  "penalties": [],
+  "total_score": 0,
+  "status": "PROMOTE | WATCH | REJECT"
 }
 
-founder_fit_score is 1-10:
-1-3 = requires specialist expertise or trust (should have been rejected)
-4-6 = doable but friction exists
-7-9 = clear fit: product/automation/content play, fast to ship
-10 = perfect: obvious wedge, no dependencies, native founder range`;
+SCORING GUIDE (100 points total):
+Positive: pain_clarity(20) + user_segment_clarity(15) + monetization_potential(15) + mvp_feasibility(15) + repeatability(10) + distribution_clarity(10) + expansion_potential(5) + product_leverage(5) + founder_fit(5)
+Penalties: too_technical(-20), regulated_or_trust_critical(-20), no_clear_revenue(-15), too_broad(-15), requires_large_team(-15), generic_news(-25)
+Thresholds: 80+ = PROMOTE, 65-79 = WATCH, <65 = REJECT`;
 
 // ── Clustering ────────────────────────────────────────────────────────────────
 
 function getClusterKey(record: IdeaRecord): string {
-  // Simple cluster key: first 3 significant words of audience + first 3 of pain
   const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(' ').filter(w => w.length > 3).slice(0, 3).join('_');
   return `${words(record.audience)}__${words(record.pain)}`;
 }
@@ -93,44 +97,49 @@ function getClusterKey(record: IdeaRecord): string {
 // ── Main pipeline ─────────────────────────────────────────────────────────────
 
 export async function runScout(): Promise<IdeaRecord[]> {
-  logger.info(AGENT, 'Starting scout run');
+  logger.info(AGENT, 'Starting scout run (v2 — intent search + 100-point scoring)');
 
-  // Stage 1: Ingest raw posts from all sources
-  const [rssResult, hnResult] = await Promise.allSettled([
-    fetchRSSFeeds(),
+  // Stage 1: Ingest from all sources in parallel
+  const [hnResult, rssResult, redditSearchResult] = await Promise.allSettled([
     fetchHackerNews(),
+    fetchRSSFeeds(),
+    fetchRedditIntentSearch(),
   ]);
 
   const rawPosts: RawPost[] = [];
-  // HN Algolia first — Ask/Show HN are highest-signal for opportunities
   if (hnResult.status === 'fulfilled') rawPosts.push(...hnResult.value);
   else logger.warn(AGENT, 'HN fetch failed', hnResult.reason);
+  if (redditSearchResult.status === 'fulfilled') rawPosts.push(...redditSearchResult.value);
+  else logger.warn(AGENT, 'Reddit intent search failed', redditSearchResult.reason);
   if (rssResult.status === 'fulfilled') rawPosts.push(...rssResult.value);
   else logger.warn(AGENT, 'RSS fetch failed', rssResult.reason);
 
-  // Daily quota is 20,000 (Copilot Pro, low-tier models) — no artificial cap needed.
-  // Per-minute limit of 15 is handled by the sleep below.
   logger.info(AGENT, `Stage 1: ${rawPosts.length} raw posts to process`);
 
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-  // Stage 2: LLM extraction — sequential with rate limiting (< 15 calls/min)
+  // Stage 2: LLM extraction with 100-point scoring
   const extracted: IdeaRecord[] = [];
 
   for (const post of rawPosts) {
     try {
-      await sleep(4200); // Rate limit: stay under 15 calls/min for GitHub Models
+      await sleep(1000); // OpenAI has much higher rate limits than GitHub Models
       logger.info(AGENT, `LLM extracting: [${post.platform}] ${post.title}`);
-      const prompt = `${SYSTEM_PROMPT}\n\nPost title: ${post.title}\n${post.body ? `Post content: ${post.body.slice(0, 400)}` : ''}`;
+      const prompt = `${SYSTEM_PROMPT}\n\nPost title: ${post.title}\n${post.body ? `Post content: ${post.body.slice(0, 600)}` : ''}`;
       const response = await callLLM(prompt, { model: 'gpt-4o-mini', temperature: 0.2 });
 
       if (response.trim().toUpperCase().startsWith('REJECT')) continue;
 
-      // Extract JSON from response (handle markdown code blocks)
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) continue;
 
       const parsed = JSON.parse(jsonMatch[0]);
+
+      // Skip anything the LLM itself scored as REJECT
+      if (parsed.status === 'REJECT') continue;
+
+      const totalScore = typeof parsed.total_score === 'number' ? parsed.total_score : 50;
+      const founderFitScore = parsed.score_breakdown?.founder_fit ?? 3;
 
       extracted.push({
         title: parsed.title ?? post.title,
@@ -145,16 +154,16 @@ export async function runScout(): Promise<IdeaRecord[]> {
         founderFitReason: parsed.founder_fit_reason ?? [],
         expansionPaths: parsed.expansion_paths ?? [],
         sourceExcerpt: parsed.source_excerpt ?? '',
-        confidence: parsed.confidence ?? 'low',
+        confidence: totalScore >= 80 ? 'high' : totalScore >= 65 ? 'medium' : 'low',
         whyNow: parsed.why_now ?? '',
-        founderFitScore: typeof parsed.founder_fit_score === 'number' ? parsed.founder_fit_score : 5,
+        founderFitScore: founderFitScore,
         signalCount: 1,
         sourceCluster: [{ platform: post.platform, url: post.url, context: post.title }],
         summary: `${parsed.audience} — ${parsed.pain}`,
         evidence: post.points ? [{ type: 'metric' as const, value: `${post.points} upvotes` }] : [],
         sources: [{ platform: post.platform, url: post.url, context: post.title }],
         keywords: post.title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(' ').filter(w => w.length > 3),
-        tags: [],
+        tags: [parsed.status ?? 'WATCH'],
         assetTypeHint: (parsed.asset_type_hint ?? 'unknown') as IdeaRecord['assetTypeHint'],
       });
     } catch (err: any) {
@@ -164,7 +173,7 @@ export async function runScout(): Promise<IdeaRecord[]> {
 
   logger.info(AGENT, `Stage 2: ${extracted.length} opportunities extracted by LLM`);
 
-  // Stage 3: Cluster — merge ideas with similar audience+pain into one with higher signal_count
+  // Stage 3: Cluster — merge ideas with similar audience+pain
   const clusters = new Map<string, IdeaRecord>();
   for (const idea of extracted) {
     const key = getClusterKey(idea);
@@ -172,23 +181,19 @@ export async function runScout(): Promise<IdeaRecord[]> {
       const existing = clusters.get(key)!;
       existing.signalCount += 1;
       existing.sourceCluster.push(...idea.sourceCluster);
-      // Upgrade confidence if signal count hits threshold
       if (existing.signalCount >= 3) existing.confidence = 'high';
-      else if (existing.signalCount >= 2) existing.confidence = existing.confidence === 'low' ? 'medium' : existing.confidence;
+      else if (existing.signalCount >= 2 && existing.confidence === 'low') existing.confidence = 'medium';
     } else {
       clusters.set(key, idea);
     }
   }
 
-  // Stage 4: Promote ideas where LLM assessed medium or high confidence
-  // (single-run can't accumulate 2+ signals — clustering helps across future runs)
-  const promoted = [...clusters.values()].filter(
-    idea => idea.confidence !== 'low'
-  );
+  // Stage 4: Promote PROMOTE + WATCH — both are worth storing
+  const promoted = [...clusters.values()].filter(idea => idea.confidence !== 'low');
 
   logger.info(AGENT, `Stage 3/4: ${clusters.size} clusters, ${promoted.length} promoted (medium/high confidence)`);
 
-  // Stage 5: Dedup against existing DB ideas (by title similarity) and write
+  // Stage 5: Dedup against existing DB ideas and write
   const { data: existingIdeas } = await db.from('ideas').select('title');
   const existingTitles = new Set((existingIdeas ?? []).map((r: any) => r.title.toLowerCase()));
 
@@ -227,3 +232,4 @@ export async function runScout(): Promise<IdeaRecord[]> {
   logger.info(AGENT, `Scout complete — ${written} new ideas written to DB`);
   return promoted;
 }
+
