@@ -1,8 +1,19 @@
 -- CreateTable
 CREATE TABLE "ideas" (
     "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    -- Core opportunity brief (populated by Scout LLM extraction)
     "title" TEXT NOT NULL,
-    "summary" TEXT NOT NULL,
+    "audience" TEXT NOT NULL DEFAULT '',
+    "pain" TEXT NOT NULL DEFAULT '',
+    "workaround" TEXT NOT NULL DEFAULT '',
+    "product_possibilities" JSONB NOT NULL DEFAULT '[]',
+    "monetization" JSONB NOT NULL DEFAULT '[]',
+    "confidence" TEXT NOT NULL DEFAULT 'low',  -- low | medium | high
+    -- Signal strength
+    "signal_count" INTEGER NOT NULL DEFAULT 1,
+    "source_cluster" JSONB NOT NULL DEFAULT '[]',
+    -- Legacy / metadata
+    "summary" TEXT NOT NULL DEFAULT '',
     "evidence" JSONB NOT NULL DEFAULT '[]',
     "sources" JSONB NOT NULL DEFAULT '[]',
     "keywords" TEXT[] NOT NULL DEFAULT '{}',

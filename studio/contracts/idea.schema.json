@@ -2,9 +2,44 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "IdeaRecord",
   "type": "object",
-  "required": ["title", "summary", "sources", "keywords", "tags", "assetTypeHint"],
+  "required": ["title", "audience", "pain", "workaround", "productPossibilities", "monetization", "confidence", "signalCount", "sourceCluster"],
   "properties": {
-    "title": { "type": "string" },
+    "title": { "type": "string", "description": "Short opportunity name" },
+    "audience": { "type": "string", "description": "Who has this problem" },
+    "pain": { "type": "string", "description": "The specific recurring pain or friction" },
+    "workaround": { "type": "string", "description": "What they currently do instead" },
+    "productPossibilities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Possible product types (SaaS, directory, chrome extension, etc.)"
+    },
+    "monetization": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Plausible monetization paths"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "LLM confidence in this being a real opportunity"
+    },
+    "signalCount": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of independent sources that surfaced this pain"
+    },
+    "sourceCluster": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["platform", "url"],
+        "properties": {
+          "platform": { "type": "string" },
+          "url": { "type": "string" },
+          "context": { "type": "string" }
+        }
+      }
+    },
     "summary": { "type": "string" },
     "evidence": {
       "type": "array",

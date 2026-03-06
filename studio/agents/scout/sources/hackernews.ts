@@ -1,4 +1,4 @@
-import type { IdeaRecord } from '../types';
+import type { RawPost } from '../types';
 
 interface HNItem {
   title: string;
@@ -8,26 +8,45 @@ interface HNItem {
   objectID: string;
 }
 
-export async function fetchHackerNews(): Promise<IdeaRecord[]> {
-  const res = await fetch('https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn&hitsPerPage=20');
-  const data = await res.json() as { hits: HNItem[] };
+// Hard reject patterns — kill obvious noise before LLM
+const REJECT_PATTERNS = [
+  /^ask hn: what (are|is) (you|your|the)/i,
+  /^ask hn: (do|did|does|have|has) you/i,
+  /^ask hn: (who|where|when|why) (are|is|do|did)/i,
+  /bugging out/i,
+  /outage/i,
+  /down for anyone/i,
+  /anyone else (seeing|having|experiencing)/i,
+  /^ask hn: how (do|did|does) you feel/i,
+  /career|job market|hiring|layoff/i,
+  /politics|election|government/i,
+];
 
-  return data.hits
-    .filter(item => item.title && item.points > 5)
+function isRejected(title: string): boolean {
+  return REJECT_PATTERNS.some(p => p.test(title));
+}
+
+export async function fetchHackerNews(): Promise<RawPost[]> {
+  // Fetch show_hn (people launching things) and ask_hn (pain/tool requests) in parallel
+  const [showRes, askRes] = await Promise.all([
+    fetch('https://hn.algolia.com/api/v1/search_by_date?tags=show_hn&hitsPerPage=30'),
+    fetch('https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn&hitsPerPage=30'),
+  ]);
+
+  const [showData, askData] = await Promise.all([
+    showRes.json() as Promise<{ hits: HNItem[] }>,
+    askRes.json() as Promise<{ hits: HNItem[] }>,
+  ]);
+
+  const all = [...(showData.hits ?? []), ...(askData.hits ?? [])];
+
+  return all
+    .filter(item => item.title && item.points > 3 && !isRejected(item.title))
     .map(item => ({
       title: item.title,
-      summary: `HN post with ${item.points} points and ${item.num_comments} comments`,
-      evidence: [
-        { type: 'metric' as const, value: `${item.points} upvotes` },
-        { type: 'metric' as const, value: `${item.num_comments} comments` },
-      ],
-      sources: [{
-        platform: 'hackernews',
-        url: `https://news.ycombinator.com/item?id=${item.objectID}`,
-        context: item.title,
-      }],
-      keywords: item.title.toLowerCase().split(' ').filter(w => w.length > 3),
-      tags: [],
-      assetTypeHint: 'unknown' as const,
+      url: `https://news.ycombinator.com/item?id=${item.objectID}`,
+      platform: 'hackernews',
+      points: item.points,
+      comments: item.num_comments,
     }));
 }

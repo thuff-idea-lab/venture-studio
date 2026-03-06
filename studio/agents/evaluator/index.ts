@@ -47,11 +47,11 @@ export async function runEvaluator(): Promise<void> {
 
 function scoreIdea(idea: any) {
   const breakdown = {
-    demand:              estimateDemand(idea),
-    monetization:        estimateMonetization(idea),
-    competition:         estimateCompetition(idea),
-    automationPotential: estimateAutomation(idea),
-    buildComplexity:     estimateBuildComplexity(idea),
+    demand:              scoreDemand(idea),
+    monetization:        scoreMonetization(idea),
+    competition:         scoreCompetition(idea),
+    automationPotential: scoreAutomation(idea),
+    buildComplexity:     scoreBuildComplexity(idea),
   };
 
   const scoreTotal = Math.round(
@@ -66,38 +66,88 @@ function scoreIdea(idea: any) {
     scoreTotal >= weights.thresholds.BUILD ? 'BUILD' :
     scoreTotal >= weights.thresholds.WATCH ? 'WATCH' : 'DROP';
 
-  return { scoreTotal, scoreBreakdown: breakdown, recommendation, notes: '' };
+  const notes = buildNotes(idea, breakdown);
+
+  return { scoreTotal, scoreBreakdown: breakdown, recommendation, notes };
 }
 
-// ── Rule-based scoring (no LLM needed) ───────────────────────────────────────
+// ── Scoring functions — now use structured brief fields ───────────────────────
 
-function estimateDemand(idea: any): number {
-  const evidenceCount = idea.evidence?.length ?? 0;
-  if (evidenceCount >= 3) return 8;
-  if (evidenceCount >= 1) return 6;
-  return 4;
+function scoreDemand(idea: any): number {
+  let score = 4; // baseline
+
+  // Signal count: multiple independent sources = strong demand
+  const signalCount = idea.signal_count ?? 1;
+  if (signalCount >= 3) score += 4;
+  else if (signalCount >= 2) score += 2;
+
+  // Confidence set by LLM
+  if (idea.confidence === 'high') score += 2;
+  else if (idea.confidence === 'medium') score += 1;
+
+  // Specific audience = more targetable demand
+  const audience = (idea.audience ?? '').toLowerCase();
+  if (audience && audience !== 'unknown' && audience.split(' ').length <= 6) score += 1;
+
+  return Math.min(score, 10);
 }
 
-function estimateMonetization(idea: any): number {
-  const monetizationKeywords = ['tool', 'software', 'saas', 'paid', 'premium', 'subscription', 'service'];
-  const title = (idea.title ?? '').toLowerCase();
-  return monetizationKeywords.some(k => title.includes(k)) ? 7 : 5;
+function scoreMonetization(idea: any): number {
+  let score = 4;
+
+  const monetization: string[] = idea.monetization ?? [];
+  if (monetization.length >= 3) score += 3;
+  else if (monetization.length >= 1) score += 1;
+
+  // High-value monetization signals
+  const monetizationText = monetization.join(' ').toLowerCase();
+  if (/subscription|saas|recurring/i.test(monetizationText)) score += 2;
+  if (/b2b|business|agency|professional/i.test(idea.audience ?? '')) score += 1;
+
+  return Math.min(score, 10);
 }
 
-function estimateCompetition(idea: any): number {
-  // Will improve with SerpAPI in Phase 2 — default to neutral
+function scoreCompetition(idea: any): number {
+  // Default neutral — will improve with SerpAPI in Phase 2
+  const workaround = (idea.workaround ?? '').toLowerCase();
+
+  // If workaround is "manual" or "nothing" = weak competition
+  if (/manual|spreadsheet|nothing|don't|no tool/i.test(workaround)) return 7;
   return 5;
 }
 
-function estimateAutomation(idea: any): number {
-  const automationKeywords = ['directory', 'list', 'aggregator', 'tracker', 'monitor', 'alert'];
-  const title = (idea.title ?? '').toLowerCase();
-  return automationKeywords.some(k => title.includes(k)) ? 8 : 5;
+function scoreAutomation(idea: any): number {
+  let score = 5;
+
+  const products: string[] = idea.product_possibilities ?? [];
+  const productText = products.join(' ').toLowerCase();
+
+  if (/directory|aggregator|list|database/i.test(productText)) score += 3;
+  if (/automation|tool|scraper|monitor|alert|tracker/i.test(productText)) score += 2;
+  if (/saas|app|extension/i.test(productText)) score += 1;
+
+  return Math.min(score, 10);
 }
 
-function estimateBuildComplexity(idea: any): number {
-  // Invert complexity — higher score = simpler to build (better)
-  const complexKeywords = ['marketplace', 'platform', 'social', 'network', 'real-time'];
-  const title = (idea.title ?? '').toLowerCase();
-  return complexKeywords.some(k => title.includes(k)) ? 4 : 7;
+function scoreBuildComplexity(idea: any): number {
+  // Invert: higher score = simpler to build (better)
+  const products: string[] = idea.product_possibilities ?? [];
+  const productText = products.join(' ').toLowerCase();
+
+  if (/marketplace|social network|real-time|platform/i.test(productText)) return 3;
+  if (/directory|newsletter|template|prompt/i.test(productText)) return 9;
+  if (/chrome extension|browser/i.test(productText)) return 8;
+  if (/saas|tool/i.test(productText)) return 6;
+  return 6;
 }
+
+function buildNotes(idea: any, breakdown: Record<string, number>): string {
+  const parts: string[] = [];
+  if ((idea.signal_count ?? 1) >= 2) parts.push(`${idea.signal_count} independent signals`);
+  if (idea.confidence === 'high') parts.push('high LLM confidence');
+  if (breakdown.demand >= 8) parts.push('strong demand');
+  if (breakdown.monetization >= 8) parts.push('clear monetization');
+  if (breakdown.buildComplexity >= 8) parts.push('simple to build');
+  return parts.join(', ');
+}
+

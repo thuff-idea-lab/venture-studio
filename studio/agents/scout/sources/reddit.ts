@@ -1,38 +1,48 @@
 import Parser from 'rss-parser';
 import sources from '../../../config/sources.json';
-import type { IdeaRecord } from '../types';
+import type { RawPost } from '../types';
 
-const parser = new Parser();
+const parser = new Parser({
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (compatible; venture-studio-bot/1.0; +https://github.com/thuff-idea-lab/venture-studio)',
+    'Accept': 'application/rss+xml, application/xml, text/xml',
+  },
+});
 
-export async function fetchRedditRSS(): Promise<IdeaRecord[]> {
-  const redditSources = sources.feeds.filter(s => s.name.startsWith('reddit'));
-  const ideas: IdeaRecord[] = [];
+// Hard reject patterns — kill obvious noise before LLM
+const REJECT_PATTERNS = [
+  /outage|down for anyone|not working|bugging out/i,
+  /politics|election|government/i,
+  /^introducing myself|new (here|member)/i,
+  /just venting|rant:/i,
+];
 
-  for (const source of redditSources) {
-    const feed = await parser.parseURL(source.url);
+function isRejected(title: string): boolean {
+  return REJECT_PATTERNS.some(p => p.test(title));
+}
 
-    for (const item of feed.items.slice(0, 10)) {
-      if (!item.title || !item.link) continue;
+export async function fetchRSSFeeds(): Promise<RawPost[]> {
+  const rssFeeds = sources.feeds.filter(s => s.type === 'rss');
+  const posts: RawPost[] = [];
 
-      ideas.push({
-        title: item.title,
-        summary: item.contentSnippet ?? item.title,
-        evidence: [],
-        sources: [{ platform: 'reddit', url: item.link, context: item.contentSnippet }],
-        keywords: extractKeywords(item.title),
-        tags: [],
-        assetTypeHint: 'unknown',
-      });
+  for (const source of rssFeeds) {
+    try {
+      const feed = await parser.parseURL(source.url);
+      for (const item of feed.items.slice(0, 20)) {
+        if (!item.title || !item.link) continue;
+        if (isRejected(item.title)) continue;
+
+        posts.push({
+          title: item.title,
+          body: item.contentSnippet,
+          url: item.link,
+          platform: source.name,
+        });
+      }
+    } catch {
+      // individual feed failures logged by caller
     }
   }
 
-  return ideas;
-}
-
-function extractKeywords(title: string): string[] {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .split(' ')
-    .filter(w => w.length > 3);
+  return posts;
 }
