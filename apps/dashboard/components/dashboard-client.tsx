@@ -25,6 +25,7 @@ export function DashboardClient({
   const [activeStatus, setActiveStatus] = useState<ReviewStatus>(initialStatus);
   const [search, setSearch] = useState(initialSearch);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(initialSelectedProjectId);
+  const [mobilePane, setMobilePane] = useState<'queue' | 'detail'>(initialSelectedProjectId ? 'detail' : 'queue');
   const [pending, startTransition] = useTransition();
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [priorityDraft, setPriorityDraft] = useState<Record<string, number>>({});
@@ -54,11 +55,13 @@ export function DashboardClient({
   function setStatus(status: ReviewStatus) {
     setActiveStatus(status);
     setSelectedProjectId(null);
+    setMobilePane('queue');
     syncUrl(status, null, search);
   }
 
   function selectProject(projectId: string) {
     setSelectedProjectId(projectId);
+    setMobilePane('detail');
     syncUrl(activeStatus, projectId, search);
   }
 
@@ -145,9 +148,29 @@ export function DashboardClient({
         </label>
       </div>
 
+      <div className="mobile-pane-toggle" aria-label="Mobile dashboard panels">
+        <button
+          type="button"
+          className={mobilePane === 'queue' ? 'pane-toggle active' : 'pane-toggle'}
+          onClick={() => setMobilePane('queue')}
+        >
+          Queue
+          <strong>{filteredRows.length}</strong>
+        </button>
+        <button
+          type="button"
+          className={mobilePane === 'detail' ? 'pane-toggle active' : 'pane-toggle'}
+          onClick={() => setMobilePane('detail')}
+          disabled={!selectedRow}
+        >
+          Review
+          <strong>{selectedRow ? 1 : 0}</strong>
+        </button>
+      </div>
+
       {errorMessage ? <p className="error-banner">{errorMessage}</p> : null}
 
-      <div className="content-grid">
+      <div className={`content-grid ${mobilePane === 'detail' ? 'show-detail' : 'show-queue'}`}>
         <section className="queue-list">
           <div className="list-header">
             <span>{activeStatus}</span>
@@ -182,12 +205,17 @@ export function DashboardClient({
           {selectedRow ? (
             <>
               <div className="detail-header">
-                <div>
+                <div className="detail-header-copy">
                   <p className="eyebrow">{selectedRow.status}</p>
                   <h2>{selectedRow.idea_title}</h2>
                   <p className="detail-summary">{selectedRow.plan?.oneSentencePitch ?? selectedRow.idea_summary}</p>
                 </div>
-                <div className="detail-score">{selectedRow.evaluation_score_total ?? 'n/a'}</div>
+                <div className="detail-header-meta">
+                  <button className="mobile-back" type="button" onClick={() => setMobilePane('queue')}>
+                    Back to queue
+                  </button>
+                  <div className="detail-score">{selectedRow.evaluation_score_total ?? 'n/a'}</div>
+                </div>
               </div>
 
               <div className="action-bar">
