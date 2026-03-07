@@ -450,9 +450,14 @@ export async function runScout(): Promise<IdeaRecord[]> {
 
   // Stage 2: LLM extraction with 100-point scoring
   const extracted: IdeaRecord[] = [];
+  let llmAttemptCount = 0;
+  let llmFailureCount = 0;
+  let llmFatalFailureCount = 0;
+  const fatalFailureMessages: string[] = [];
 
   for (const post of cappedPosts) {
     try {
+      llmAttemptCount += 1;
       logger.info(AGENT, `LLM extracting: [${post.platform}] ${post.title}`);
       const prefilterContext = post.metadata
         ? `Scout prefilter signals:\n- source_lane: ${post.metadata.sourceLane ?? 'unknown'}\n- source_name: ${post.metadata.sourceName ?? 'unknown'}\n- source_priority: ${post.metadata.sourcePriority ?? 'unknown'}\n- bucket: ${post.metadata.bucket ?? 'unknown'}\n- intent: ${post.metadata.intent ?? 'unknown'}\n- easy_build_score: ${post.metadata.easyBuildScore ?? 0}\n- hard_build_penalty: ${post.metadata.hardBuildPenalty ?? 0}\n- prefilter_score: ${post.metadata.prefilterScore ?? 0}\nTreat startup ecosystem sources as secondary validation, not primary pain discovery. Strongly favor opportunities that can become a lightweight, easy-to-demo V1 such as a calculator, estimator, comparison tool, directory, searchable database, research helper, diagnostic, or creator/seller workflow aid. Penalize generic dashboard, management, workflow, platform, and tracker ideas unless the source clearly supports a very specific underserved user and repeated trigger.\n\n`
@@ -527,8 +532,23 @@ export async function runScout(): Promise<IdeaRecord[]> {
         assetTypeHint,
       });
     } catch (err: any) {
+      llmFailureCount += 1;
+      const errorMessage = err?.message ?? String(err);
+      if (isFatalLLMFailure(errorMessage)) {
+        llmFatalFailureCount += 1;
+        fatalFailureMessages.push(errorMessage);
+      }
+
       logger.warn(AGENT, `LLM extraction failed for "${post.title}": ${err?.message ?? err}`);
     }
+  }
+
+  if (llmFatalFailureCount > 0 && extracted.length === 0) {
+    throw new Error(`Scout aborted after ${llmFatalFailureCount}/${llmAttemptCount} fatal LLM failures. Example: ${fatalFailureMessages[0]}`);
+  }
+
+  if (llmAttemptCount > 0 && llmFailureCount === llmAttemptCount && extracted.length === 0) {
+    throw new Error('Scout aborted because every LLM extraction attempt failed and no opportunities were produced.');
   }
 
   logger.info(AGENT, `Stage 2: ${extracted.length} opportunities extracted by LLM`);
@@ -614,5 +634,9 @@ export async function runScout(): Promise<IdeaRecord[]> {
 
   logger.info(AGENT, `Scout complete — ${written} new ideas written to DB`);
   return promoted;
+}
+
+function isFatalLLMFailure(message: string): boolean {
+  return /GITHUB_TOKEN not set|GitHub Models API error 401|GitHub Models API error 403|GitHub Models API error 429|GitHub Models API error 5\d\d|OPENAI_API_KEY not set|fetch failed|ECONNRESET|ENOTFOUND|ETIMEDOUT/i.test(message);
 }
 

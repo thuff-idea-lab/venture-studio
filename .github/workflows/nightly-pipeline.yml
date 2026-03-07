@@ -1,5 +1,9 @@
 name: Nightly Pipeline
 
+permissions:
+  contents: read
+  models: read
+
 on:
   schedule:
     - cron: '0 6 * * *'   # 2am ET (6am UTC)
