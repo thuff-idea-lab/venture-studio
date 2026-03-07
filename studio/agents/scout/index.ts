@@ -418,6 +418,13 @@ export async function runScout(): Promise<IdeaRecord[]> {
     fetchComplaintEcosystemPosts(),
   ]);
 
+  const sourceSummary = {
+    hackerNews: summarizeSourceResult(hnResult),
+    rss: summarizeSourceResult(rssResult),
+    redditIntent: summarizeSourceResult(redditSearchResult),
+    complaints: summarizeSourceResult(complaintResult),
+  };
+
   const rawPosts: RawPost[] = [];
   if (hnResult.status === 'fulfilled') rawPosts.push(...hnResult.value);
   else logger.warn(AGENT, 'HN fetch failed', hnResult.reason);
@@ -428,6 +435,23 @@ export async function runScout(): Promise<IdeaRecord[]> {
   if (complaintResult.status === 'fulfilled') rawPosts.push(...complaintResult.value);
   else logger.warn(AGENT, 'Complaint ecosystem source failed', complaintResult.reason);
 
+  logger.info(AGENT, 'Stage 1 source summary', sourceSummary);
+
+  const failedSources = Object.values(sourceSummary).filter(source => !source.ok).length;
+  const emptySources = Object.values(sourceSummary).filter(source => source.ok && source.count === 0).length;
+
+  if (rawPosts.length === 0) {
+    throw new Error(`Scout fetched zero raw posts. Source summary: ${JSON.stringify(sourceSummary)}`);
+  }
+
+  if (failedSources >= 3 && rawPosts.length < 10) {
+    throw new Error(`Scout had widespread source failures (${failedSources} sources failed) and only fetched ${rawPosts.length} raw posts.`);
+  }
+
+  if (emptySources === Object.keys(sourceSummary).length) {
+    throw new Error('Scout sources completed but all returned zero posts.');
+  }
+
   const laneBalancedPosts = balancePostsBySourceLane(rawPosts);
   const maxLLMPosts = getMaxLLMPosts();
   const cappedPosts = capPostsForLLM(laneBalancedPosts, maxLLMPosts);
@@ -436,6 +460,10 @@ export async function runScout(): Promise<IdeaRecord[]> {
   logger.info(AGENT, 'Stage 1 lane counts before cap', getLaneCounts(laneBalancedPosts));
   logger.info(AGENT, `Stage 1 LLM cap: processing ${cappedPosts.length} posts (SCOUT_MAX_LLM_POSTS=${maxLLMPosts})`);
   logger.info(AGENT, 'Stage 1 lane counts after cap', getLaneCounts(cappedPosts));
+
+  if (cappedPosts.length === 0) {
+    throw new Error(`Scout produced zero candidate posts after balancing and capping. Source summary: ${JSON.stringify(sourceSummary)}`);
+  }
 
   const runTag = getRunTag();
   if (runTag) {
@@ -638,5 +666,17 @@ export async function runScout(): Promise<IdeaRecord[]> {
 
 function isFatalLLMFailure(message: string): boolean {
   return /GITHUB_TOKEN not set|GitHub Models API error 401|GitHub Models API error 403|GitHub Models API error 429|GitHub Models API error 5\d\d|OPENAI_API_KEY not set|fetch failed|ECONNRESET|ENOTFOUND|ETIMEDOUT/i.test(message);
+}
+
+function summarizeSourceResult(result: PromiseSettledResult<RawPost[]>): { ok: boolean; count: number; error?: string } {
+  if (result.status === 'fulfilled') {
+    return { ok: true, count: result.value.length };
+  }
+
+  return {
+    ok: false,
+    count: 0,
+    error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+  };
 }
 

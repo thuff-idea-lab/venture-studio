@@ -4,6 +4,7 @@ dotenv.config();
 import { runScout } from '../studio/agents/scout';
 import { runEvaluator } from '../studio/agents/evaluator';
 import { runPlanner } from '../studio/agents/planner';
+import { callLLM } from '../studio/lib/llm';
 import { db } from '../studio/lib/db';
 import { logger } from '../studio/lib/logger';
 
@@ -13,6 +14,9 @@ async function main() {
   logger.info(AGENT, '=== Nightly pipeline starting ===');
 
   try {
+    logger.info(AGENT, 'Preflight — database and LLM');
+    await runPreflightChecks();
+
     logger.info(AGENT, 'Step 1/3 — Scout');
     await runScout();
 
@@ -45,6 +49,22 @@ async function getTableCount(table: 'ideas' | 'evaluations' | 'projects'): Promi
   const { count, error } = await db.from(table).select('*', { count: 'exact', head: true });
   if (error) throw error;
   return count ?? 0;
+}
+
+async function runPreflightChecks(): Promise<void> {
+  const ideasCount = await getTableCount('ideas');
+  logger.info(AGENT, 'Preflight database check passed', { ideas: ideasCount });
+
+  const llmResponse = await callLLM('Reply with exactly OK', {
+    model: 'gpt-4o-mini',
+    temperature: 0,
+  });
+
+  if (!llmResponse || llmResponse.trim().length === 0) {
+    throw new Error('Pipeline preflight failed: LLM returned an empty response.');
+  }
+
+  logger.info(AGENT, 'Preflight LLM check passed', { response: llmResponse.trim().slice(0, 40) });
 }
 
 main();
