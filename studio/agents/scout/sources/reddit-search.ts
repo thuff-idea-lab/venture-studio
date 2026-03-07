@@ -3,16 +3,18 @@ import { logger } from '../../../lib/logger';
 import { enrichRawPost } from '../prefilter';
 import type { OpportunityBucket, RawPost } from '../types';
 
-interface RedditSearchItem {
-  data: {
-    title: string;
-    selftext: string;
-    url: string;
-    permalink: string;
-    subreddit_name_prefixed: string;
-    score: number;
-    num_comments: number;
-  };
+interface RedditListingChild {
+  data: RedditPostData;
+}
+
+interface RedditPostData {
+  title: string;
+  selftext?: string;
+  url?: string;
+  permalink: string;
+  subreddit_name_prefixed: string;
+  score: number;
+  num_comments: number;
 }
 
 const QUERY_BUCKETS: Record<OpportunityBucket, string[]> = {
@@ -103,6 +105,11 @@ const FETCH_HEADERS = {
   Accept: 'application/json',
 };
 
+const REDDIT_HOSTS = [
+  'https://www.reddit.com',
+  'https://old.reddit.com',
+];
+
 const QUERY_SAMPLE_COUNT: Record<OpportunityBucket, number> = {
   workflow: 3,
   buying: 5,
@@ -117,20 +124,132 @@ const SUBREDDIT_SAMPLE_COUNT: Record<OpportunityBucket, number> = {
   creator: 4,
 };
 
-function shuffle<T>(items: T[]): T[] {
-  return [...items].sort(() => Math.random() - 0.5);
+const TARGET_BUCKET_RESULTS: Record<OpportunityBucket, number> = {
+  workflow: 18,
+  buying: 20,
+  discovery: 16,
+  creator: 14,
+};
+
+const MIN_BUCKET_RESULTS: Record<OpportunityBucket, number> = {
+  workflow: 8,
+  buying: 10,
+  discovery: 8,
+  creator: 8,
+};
+
+const FALLBACK_BUCKET_PATTERNS: Record<OpportunityBucket, RegExp[]> = {
+  workflow: [
+    /manual|manually|spreadsheet|follow up|workflow|takes too long|automate|tedious|time-consuming/i,
+    /how do you handle|what do you use for|better way to|tool for/i,
+  ],
+  buying: [
+    /compare|comparison|vs\.?\b|which one|best for|worth it|alternative|cost|price|calculator|estimator/i,
+    /for beginners|for my home|for small space|for large yard/i,
+  ],
+  discovery: [
+    /directory|database|registry|lookup|finder|where can i find|search by zip|licensed in my area/i,
+    /provider|providers|compare providers|list of|official registry|public records/i,
+  ],
+  creator: [
+    /listing|title|titles|description|descriptions|keyword|keywords|caption|captions|thumbnail/i,
+    /repurpose|content|etsy|youtube|organize content|product listing/i,
+  ],
+};
+
+const REQUEST_DELAY_MS = 250;
+const QUERY_STOP_WORDS = new Set([
+  'i',
+  'a',
+  'an',
+  'the',
+  'for',
+  'how',
+  'what',
+  'when',
+  'where',
+  'which',
+  'who',
+  'does',
+  'do',
+  'you',
+  'your',
+  'with',
+  'this',
+  'that',
+  'there',
+  'tool',
+  'best',
+  'need',
+  'worth',
+  'list',
+]);
+
+function hashSeed(value: string): number {
+  let hash = 0;
+
+  for (const char of value) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+
+  return hash;
 }
 
-async function searchReddit(subreddit: string, query: string): Promise<RedditSearchItem[]> {
-  const url = `https://www.reddit.com/${subreddit}/search.json?q=${encodeURIComponent(query)}&sort=new&restrict_sr=1&limit=20&t=year`;
-  const response = await axios.get<{ data: { children: RedditSearchItem[] } }>(url, {
-    headers: FETCH_HEADERS,
-    timeout: 10000,
-  });
-  return response.data?.data?.children ?? [];
+function getSelectionSeed(): string {
+  const explicitSeed = process.env.SCOUT_SELECTION_SEED?.trim();
+  if (explicitSeed) return explicitSeed;
+
+  return new Date().toISOString().slice(0, 10);
 }
 
-function buildEnrichedPost(bucket: OpportunityBucket, item: RedditSearchItem['data']): RawPost | null {
+function stableSample<T>(items: T[], count: number, seedKey: string): T[] {
+  if (items.length <= count) return [...items];
+
+  const ordered = [...items];
+  const offset = hashSeed(seedKey) % ordered.length;
+  const rotated = ordered.slice(offset).concat(ordered.slice(0, offset));
+  return rotated.slice(0, count);
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchRedditChildren(path: string): Promise<RedditListingChild[]> {
+  let lastError: string | null = null;
+
+  for (const host of REDDIT_HOSTS) {
+    const url = `${host}${path}`;
+
+    try {
+      const response = await axios.get<{ data?: { children?: RedditListingChild[] } }>(url, {
+        headers: FETCH_HEADERS,
+        timeout: 10000,
+      });
+
+      return response.data?.data?.children ?? [];
+    } catch (err: any) {
+      lastError = err?.message ?? String(err);
+    }
+  }
+
+  throw new Error(lastError ?? `Reddit request failed for ${path}`);
+}
+
+async function searchReddit(subreddit: string, query: string): Promise<RedditPostData[]> {
+  const children = await fetchRedditChildren(
+    `/${subreddit}/search.json?q=${encodeURIComponent(query)}&sort=new&restrict_sr=1&limit=20&t=year&raw_json=1`
+  );
+  return children.map(child => child.data);
+}
+
+async function fetchSubredditListing(subreddit: string): Promise<RedditPostData[]> {
+  const topChildren = await fetchRedditChildren(`/${subreddit}/top.json?limit=30&t=year&raw_json=1`);
+  const recentChildren = await fetchRedditChildren(`/${subreddit}/new.json?limit=20&raw_json=1`);
+  return [...topChildren, ...recentChildren].map(child => child.data);
+}
+
+function buildEnrichedPost(bucket: OpportunityBucket, item: RedditPostData): RawPost | null {
   return enrichRawPost(
     {
       title: item.title ?? '',
@@ -155,17 +274,103 @@ function buildEnrichedPost(bucket: OpportunityBucket, item: RedditSearchItem['da
 }
 
 function pickBalancedQueries(bucket: OpportunityBucket): string[] {
-  return shuffle(QUERY_BUCKETS[bucket]).slice(0, QUERY_SAMPLE_COUNT[bucket]);
+  return stableSample(
+    QUERY_BUCKETS[bucket],
+    QUERY_SAMPLE_COUNT[bucket],
+    `${getSelectionSeed()}:queries:${bucket}`
+  );
 }
 
 function pickBalancedSubreddits(bucket: OpportunityBucket): string[] {
-  return shuffle(SUBREDDIT_BUCKETS[bucket]).slice(0, SUBREDDIT_SAMPLE_COUNT[bucket]);
+  return stableSample(
+    SUBREDDIT_BUCKETS[bucket],
+    SUBREDDIT_SAMPLE_COUNT[bucket],
+    `${getSelectionSeed()}:subreddits:${bucket}`
+  );
+}
+
+function matchesFallbackPattern(bucket: OpportunityBucket, item: RedditPostData): boolean {
+  const text = `${item.title ?? ''} ${item.selftext ?? ''}`;
+  return FALLBACK_BUCKET_PATTERNS[bucket].some(pattern => pattern.test(text));
+}
+
+function getQueryKeywords(query: string): string[] {
+  return query
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(token => token.length >= 4 && !QUERY_STOP_WORDS.has(token));
+}
+
+function isRelevantSearchHit(bucket: OpportunityBucket, query: string, item: RedditPostData): boolean {
+  const text = `${item.title ?? ''} ${item.selftext ?? ''}`.toLowerCase();
+
+  if (matchesFallbackPattern(bucket, item)) {
+    return true;
+  }
+
+  const queryKeywords = getQueryKeywords(query);
+  if (queryKeywords.length === 0) {
+    return false;
+  }
+
+  const matchedKeywords = queryKeywords.filter(keyword => text.includes(keyword)).length;
+  return matchedKeywords >= Math.min(2, queryKeywords.length);
+}
+
+function pushUniquePost(posts: RawPost[], seen: Set<string>, candidate: RawPost | null): boolean {
+  if (!candidate) return false;
+  if (seen.has(candidate.url)) return false;
+
+  seen.add(candidate.url);
+  posts.push(candidate);
+  return true;
+}
+
+async function backfillBucketFromListings(
+  bucket: OpportunityBucket,
+  posts: RawPost[],
+  seen: Set<string>
+): Promise<number> {
+  let added = 0;
+
+  for (const subreddit of pickBalancedSubreddits(bucket)) {
+    try {
+      const listing = await fetchSubredditListing(subreddit);
+
+      for (const item of listing) {
+        if (!item.title || !item.permalink) continue;
+        if (!matchesFallbackPattern(bucket, item)) continue;
+
+        const enriched = buildEnrichedPost(bucket, item);
+        if (pushUniquePost(posts, seen, enriched)) {
+          added += 1;
+        }
+
+        if (added >= MIN_BUCKET_RESULTS[bucket]) {
+          return added;
+        }
+      }
+    } catch (err: any) {
+      logger.warn('scout', `Reddit listing fallback failed [${bucket} | ${subreddit}]: ${err?.message ?? err}`);
+    }
+
+    await sleep(REQUEST_DELAY_MS);
+  }
+
+  return added;
 }
 
 export async function fetchRedditIntentSearch(): Promise<RawPost[]> {
   const posts: RawPost[] = [];
   const seen = new Set<string>();
   const bucketPlan: OpportunityBucket[] = ['workflow', 'buying', 'discovery', 'creator'];
+  const bucketCounts: Record<OpportunityBucket, number> = {
+    workflow: 0,
+    buying: 0,
+    discovery: 0,
+    creator: 0,
+  };
 
   for (const bucket of bucketPlan) {
     const queries = pickBalancedQueries(bucket);
@@ -176,25 +381,40 @@ export async function fetchRedditIntentSearch(): Promise<RawPost[]> {
         try {
           const children = await searchReddit(subreddit, query);
 
-          for (const child of children) {
-            const item = child.data;
+          for (const item of children) {
             if (!item.title || !item.permalink) continue;
-
-            const postUrl = `https://www.reddit.com${item.permalink}`;
-            if (seen.has(postUrl)) continue;
+            if (!isRelevantSearchHit(bucket, query, item)) continue;
 
             const enriched = buildEnrichedPost(bucket, item);
-            if (!enriched) continue;
+            if (pushUniquePost(posts, seen, enriched)) {
+              bucketCounts[bucket] += 1;
+            }
 
-            seen.add(postUrl);
-            posts.push(enriched);
+            if (bucketCounts[bucket] >= TARGET_BUCKET_RESULTS[bucket]) {
+              break;
+            }
           }
         } catch (err: any) {
           logger.warn('scout', `Reddit search failed [${bucket} | ${subreddit} | "${query}"]: ${err?.message ?? err}`);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (bucketCounts[bucket] >= TARGET_BUCKET_RESULTS[bucket]) {
+          break;
+        }
+
+        await sleep(REQUEST_DELAY_MS);
       }
+
+      if (bucketCounts[bucket] >= TARGET_BUCKET_RESULTS[bucket]) {
+        break;
+      }
+    }
+
+    if (bucketCounts[bucket] < MIN_BUCKET_RESULTS[bucket]) {
+      const beforeFallback = bucketCounts[bucket];
+      const fallbackAdded = await backfillBucketFromListings(bucket, posts, seen);
+      bucketCounts[bucket] += fallbackAdded;
+      logger.info('scout', `Reddit fallback listing fill [${bucket}]: ${beforeFallback} -> ${bucketCounts[bucket]}`);
     }
   }
 
@@ -204,6 +424,7 @@ export async function fetchRedditIntentSearch(): Promise<RawPost[]> {
     'scout',
     `Reddit intent search: ${posts.length} filtered posts across balanced opportunity buckets`
   );
+  logger.info('scout', 'Reddit bucket counts', bucketCounts);
 
   return posts;
 }
