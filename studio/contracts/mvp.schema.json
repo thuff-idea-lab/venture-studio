@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MVPBuildRecord",
+  "type": "object",
+  "required": [
+    "projectSlug",
+    "projectType",
+    "status",
+    "template",
+    "generatedAppPath",
+    "artifacts",
+    "validation",
+    "generatedAt"
+  ],
+  "properties": {
+    "projectSlug": { "type": "string" },
+    "projectType": {
+      "type": "string",
+      "enum": ["website", "directory", "saas"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["BUILDING", "PAUSED"]
+    },
+    "template": { "type": "string" },
+    "generatedAppPath": { "type": "string" },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "validation": {
+      "type": "object",
+      "required": ["installCommand", "buildCommand", "buildPassed", "notes"],
+      "properties": {
+        "installCommand": { "type": "string" },
+        "buildCommand": { "type": "string" },
+        "buildPassed": { "type": "boolean" },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "generatedAt": { "type": "string" }
+  }
+}

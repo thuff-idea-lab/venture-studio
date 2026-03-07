@@ -8,7 +8,7 @@ const agentName = process.argv[2];
 
 async function main() {
   if (!agentName) {
-    console.error('Usage: ts-node scripts/run-agent.ts <scout|evaluator|planner>');
+    console.error('Usage: ts-node scripts/run-agent.ts <scout|evaluator|planner|builder>');
     process.exit(1);
   }
 
@@ -29,6 +29,11 @@ async function main() {
       case 'planner': {
         const { runPlanner } = await import('../studio/agents/planner');
         await runPlanner();
+        break;
+      }
+      case 'builder': {
+        const { runBuilder } = await import('../studio/agents/builder');
+        await runBuilder();
         break;
       }
       default:

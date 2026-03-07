@@ -3,26 +3,20 @@
     {
       "name": "product_hunt",
       "type": "rss",
+      "lane": "startup_ecosystem",
+      "priority": "validation",
+      "enabled": true,
       "url": "https://www.producthunt.com/feed",
       "note": "Product launches — reveals what categories already have tools (gaps + incumbents)"
     },
     {
-      "name": "devto",
-      "type": "rss",
-      "url": "https://dev.to/feed",
-      "note": "Developer workflow pain points and tool requests"
-    },
-    {
       "name": "hacker_news_ask",
       "type": "api",
+      "lane": "startup_ecosystem",
+      "priority": "secondary",
+      "enabled": true,
       "url": "https://hn.algolia.com/api/v1/search_by_date?tags=ask_hn",
       "note": "Ask HN — people literally asking for solutions to problems"
-    },
-    {
-      "name": "hacker_news_show",
-      "type": "api",
-      "url": "https://hn.algolia.com/api/v1/search_by_date?tags=show_hn",
-      "note": "Show HN — reveals what builders are shipping, category signal"
     }
   ]
 }

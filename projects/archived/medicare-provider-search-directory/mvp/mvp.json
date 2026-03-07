@@ -1,0 +1,28 @@
+{
+  "projectSlug": "medicare-provider-search-directory",
+  "projectType": "directory",
+  "status": "PAUSED",
+  "template": "nextjs-studio-v1",
+  "generatedAppPath": "projects/active/medicare-provider-search-directory/build",
+  "artifacts": [
+    "package.json",
+    "tsconfig.json",
+    "next-env.d.ts",
+    "next.config.ts",
+    "app/layout.tsx",
+    "app/page.tsx",
+    "app/globals.css",
+    "README.md",
+    ".gitignore"
+  ],
+  "validation": {
+    "installCommand": "npm install",
+    "buildCommand": "npm run build",
+    "buildPassed": true,
+    "notes": [
+      "Builder v1 generated a Next.js MVP scaffold.",
+      "Build completed successfully and is ready for human review."
+    ]
+  },
+  "generatedAt": "2026-03-07T02:05:51.224Z"
+}

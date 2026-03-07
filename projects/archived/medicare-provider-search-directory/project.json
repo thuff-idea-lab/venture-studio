@@ -1,0 +1,86 @@
+{
+  "slug": "medicare-provider-search-directory",
+  "projectType": "directory",
+  "oneSentencePitch": "A centralized directory for Medicare beneficiaries to easily find licensed providers and their appeal decisions.",
+  "targetUser": "Medicare beneficiaries seeking licensed healthcare providers.",
+  "primaryMonetization": [
+    "subscription",
+    "affiliate"
+  ],
+  "mvpDefinition": {
+    "deliverables": [
+      "Searchable database of Medicare providers",
+      "Detail pages for each provider",
+      "Shortlist feature for users to save providers",
+      "Landing page with a clear CTA"
+    ],
+    "timeboxHours": 6,
+    "successMetric": "At least 10 target users perform a search in the first 14 days"
+  },
+  "buildPlan": {
+    "steps": [
+      "Identify and obtain the official Medicare provider dataset from CMS (Centers for Medicare & Medicaid Services).",
+      "Normalize the dataset into a minimal searchable schema (e.g., provider name, specialty, location, appeal decisions).",
+      "Build a search interface allowing users to filter by specialty and location.",
+      "Create detail pages for each provider displaying key information and appeal decisions.",
+      "Implement a shortlist feature allowing users to save providers for later reference.",
+      "Set up tracking for searches, detail views, and outbound clicks.",
+      "Publish a landing page with a clear call-to-action to start searching."
+    ],
+    "tech": [
+      "Next.js",
+      "Tailwind",
+      "Vercel"
+    ],
+    "risks": [
+      "Dataset may not be comprehensive or up-to-date, affecting user trust.",
+      "Low initial user engagement may hinder validation.",
+      "Technical issues with search functionality could frustrate users."
+    ],
+    "constraints": [
+      "Ship in 6 hours"
+    ]
+  },
+  "executionContext": {
+    "trigger": "Users need to find licensed Medicare providers quickly and easily.",
+    "coreInputs": [
+      "Official Medicare provider dataset from CMS."
+    ],
+    "coreOutputs": [
+      "A searchable directory of Medicare providers with detailed information."
+    ],
+    "mustHaveV1Features": [
+      "Search functionality by specialty and location",
+      "Detail pages for each provider",
+      "Shortlist feature for saving providers"
+    ],
+    "outOfScopeForV1": [
+      "User authentication",
+      "Advanced filtering options",
+      "User reviews or ratings"
+    ],
+    "suggestedIntegrations": [
+      "CMS API for ongoing dataset updates (if available)",
+      "Google Analytics for tracking user interactions"
+    ],
+    "operationalNotes": [
+      "Keep the dataset updated by scheduling regular imports from CMS.",
+      "Monitor user engagement metrics to iterate on features."
+    ]
+  },
+  "testPlan": {
+    "channels": [
+      "REDDIT"
+    ],
+    "budget": 0,
+    "tracking": [
+      "Searches started",
+      "Detail page views",
+      "Outbound clicks or shortlist saves"
+    ],
+    "goNoGo": [
+      "At least 10 target users perform a search in the first 14 days",
+      "At least 3 users click through to a provider or save a shortlist"
+    ]
+  }
+}

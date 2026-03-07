@@ -1,56 +1,7 @@
 import axios from 'axios';
 import { logger } from '../../../lib/logger';
-import type { RawPost } from '../types';
-
-// Pain-signal query patterns — pre-filter for opportunity signal before LLM
-const INTENT_QUERIES = [
-  'I wish there was a tool for',
-  'how do you handle',
-  'what do you use for',
-  'takes too long',
-  'I do this manually',
-  'looking for a better way to',
-  'is there a tool for',
-  'too expensive too complicated',
-  'hate using',
-  'does anyone know a tool that',
-  'how do you track',
-  'need to automate',
-  'spreadsheet manually',
-  'best software for',
-  'I do this in a spreadsheet',
-];
-
-// High-signal subreddits for business/workflow pain
-const SUBREDDITS = [
-  'r/entrepreneur',
-  'r/smallbusiness',
-  'r/freelance',
-  'r/SaaS',
-  'r/microsaas',
-  'r/consulting',
-  'r/realestateinvesting',
-  'r/ecommerce',
-  'r/WorkOnline',
-  'r/Bookkeeping',
-];
-
-const FETCH_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-  'Accept': 'application/json',
-};
-
-// Hard reject patterns — kill clear noise before LLM
-const REJECT_PATTERNS = [
-  /outage|down for anyone|not working/i,
-  /politics|election|government/i,
-  /^introducing myself|new (here|member)/i,
-  /just venting/i,
-];
-
-function isRejected(title: string): boolean {
-  return REJECT_PATTERNS.some(p => p.test(title));
-}
+import { enrichRawPost } from '../prefilter';
+import type { OpportunityBucket, RawPost } from '../types';
 
 interface RedditSearchItem {
   data: {
@@ -64,51 +15,195 @@ interface RedditSearchItem {
   };
 }
 
+const QUERY_BUCKETS: Record<OpportunityBucket, string[]> = {
+  workflow: [
+    'I wish there was a tool for',
+    'how do you handle',
+    'what do you use for',
+    'takes too long',
+    'I do this manually',
+    'looking for a better way to',
+    'is there a tool for',
+    'need to automate',
+  ],
+  buying: [
+    'which one should I buy',
+    'best for my situation',
+    'what do I need for',
+    'worth it',
+    'comparison',
+    'vs',
+    'for beginners',
+    'for small space',
+    'for large yard',
+    'for my home',
+    'how much does it cost',
+    'calculator',
+    'estimator',
+  ],
+  discovery: [
+    'how do I find',
+    'where can I find',
+    'directory',
+    'database',
+    'list of',
+    'public records',
+    'official registry',
+    'search by zip',
+    'compare providers',
+    'licensed in my area',
+  ],
+  creator: [
+    'writing descriptions takes forever',
+    'how do you make titles',
+    'how do you come up with keywords',
+    'how do you organize content',
+    'how do you repurpose',
+    'how long does it take you to',
+    'I hate doing captions',
+    'I still do this manually',
+  ],
+};
+
+const SUBREDDIT_BUCKETS: Record<OpportunityBucket, string[]> = {
+  workflow: [
+    'r/entrepreneur',
+    'r/smallbusiness',
+    'r/freelance',
+    'r/microsaas',
+    'r/consulting',
+  ],
+  buying: [
+    'r/BuyItForLife',
+    'r/HomeImprovement',
+    'r/Tools',
+    'r/Appliances',
+    'r/lawncare',
+    'r/robotmowers',
+  ],
+  discovery: [
+    'r/RealEstate',
+    'r/realestateinvesting',
+    'r/Parents',
+    'r/Homeowners',
+    'r/smallbusiness',
+  ],
+  creator: [
+    'r/EtsySellers',
+    'r/youtubers',
+    'r/ecommerce',
+    'r/Flipping',
+    'r/printondemand',
+  ],
+};
+
+const FETCH_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  Accept: 'application/json',
+};
+
+const QUERY_SAMPLE_COUNT: Record<OpportunityBucket, number> = {
+  workflow: 3,
+  buying: 5,
+  discovery: 4,
+  creator: 4,
+};
+
+const SUBREDDIT_SAMPLE_COUNT: Record<OpportunityBucket, number> = {
+  workflow: 3,
+  buying: 5,
+  discovery: 4,
+  creator: 4,
+};
+
+function shuffle<T>(items: T[]): T[] {
+  return [...items].sort(() => Math.random() - 0.5);
+}
+
+async function searchReddit(subreddit: string, query: string): Promise<RedditSearchItem[]> {
+  const url = `https://www.reddit.com/${subreddit}/search.json?q=${encodeURIComponent(query)}&sort=new&restrict_sr=1&limit=20&t=year`;
+  const response = await axios.get<{ data: { children: RedditSearchItem[] } }>(url, {
+    headers: FETCH_HEADERS,
+    timeout: 10000,
+  });
+  return response.data?.data?.children ?? [];
+}
+
+function buildEnrichedPost(bucket: OpportunityBucket, item: RedditSearchItem['data']): RawPost | null {
+  return enrichRawPost(
+    {
+      title: item.title ?? '',
+      body: item.selftext ? item.selftext.slice(0, 500) : undefined,
+      url: `https://www.reddit.com${item.permalink}`,
+      platform: item.subreddit_name_prefixed,
+      points: item.score,
+      comments: item.num_comments,
+    },
+    {
+      bucket,
+      sourceLane:
+        bucket === 'buying'
+          ? 'buying_confusion'
+          : bucket === 'discovery'
+            ? 'discovery_data_gaps'
+            : 'pain_communities',
+      sourceName: 'reddit_intent_search',
+      sourcePriority: 'primary',
+    }
+  );
+}
+
+function pickBalancedQueries(bucket: OpportunityBucket): string[] {
+  return shuffle(QUERY_BUCKETS[bucket]).slice(0, QUERY_SAMPLE_COUNT[bucket]);
+}
+
+function pickBalancedSubreddits(bucket: OpportunityBucket): string[] {
+  return shuffle(SUBREDDIT_BUCKETS[bucket]).slice(0, SUBREDDIT_SAMPLE_COUNT[bucket]);
+}
+
 export async function fetchRedditIntentSearch(): Promise<RawPost[]> {
   const posts: RawPost[] = [];
-  const seen = new Set<string>(); // deduplicate by URL
+  const seen = new Set<string>();
+  const bucketPlan: OpportunityBucket[] = ['workflow', 'buying', 'discovery', 'creator'];
 
-  // Sample a subset each run to stay within quota — rotate through all combos over time
-  // 5 queries × 5 subreddits = 25 searches, ~5 posts each = ~125 targeted posts
-  const querySlice = INTENT_QUERIES.sort(() => Math.random() - 0.5).slice(0, 5);
-  const subSlice = SUBREDDITS.sort(() => Math.random() - 0.5).slice(0, 5);
+  for (const bucket of bucketPlan) {
+    const queries = pickBalancedQueries(bucket);
+    const subreddits = pickBalancedSubreddits(bucket);
 
-  for (const subreddit of subSlice) {
-    for (const query of querySlice) {
-      try {
-        const url = `https://www.reddit.com/${subreddit}/search.json?q=${encodeURIComponent(query)}&sort=new&restrict_sr=1&limit=10&t=month`;
-        const response = await axios.get<{ data: { children: RedditSearchItem[] } }>(
-          url,
-          { headers: FETCH_HEADERS, timeout: 10000 }
-        );
+    for (const subreddit of subreddits) {
+      for (const query of queries) {
+        try {
+          const children = await searchReddit(subreddit, query);
 
-        const children = response.data?.data?.children ?? [];
-        for (const child of children) {
-          const item = child.data;
-          if (!item.title || !item.permalink) continue;
-          if (isRejected(item.title)) continue;
+          for (const child of children) {
+            const item = child.data;
+            if (!item.title || !item.permalink) continue;
 
-          const postUrl = `https://www.reddit.com${item.permalink}`;
-          if (seen.has(postUrl)) continue;
-          seen.add(postUrl);
+            const postUrl = `https://www.reddit.com${item.permalink}`;
+            if (seen.has(postUrl)) continue;
 
-          posts.push({
-            title: item.title,
-            body: item.selftext ? item.selftext.slice(0, 500) : undefined,
-            url: postUrl,
-            platform: item.subreddit_name_prefixed,
-            points: item.score,
-          });
+            const enriched = buildEnrichedPost(bucket, item);
+            if (!enriched) continue;
+
+            seen.add(postUrl);
+            posts.push(enriched);
+          }
+        } catch (err: any) {
+          logger.warn('scout', `Reddit search failed [${bucket} | ${subreddit} | "${query}"]: ${err?.message ?? err}`);
         }
-      } catch (err: any) {
-        logger.warn('scout', `Reddit search failed [${subreddit} / "${query}"]: ${err?.message ?? err}`);
-      }
 
-      // Brief pause to avoid Reddit rate limiting
-      await new Promise(r => setTimeout(r, 500));
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
   }
 
-  logger.info('scout', `Reddit intent search: ${posts.length} targeted posts from ${subSlice.length} subreddits × ${querySlice.length} queries`);
+  posts.sort((a, b) => (b.metadata?.prefilterScore ?? 0) - (a.metadata?.prefilterScore ?? 0));
+
+  logger.info(
+    'scout',
+    `Reddit intent search: ${posts.length} filtered posts across balanced opportunity buckets`
+  );
+
   return posts;
 }

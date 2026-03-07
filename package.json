@@ -7,6 +7,7 @@
     "scout": "ts-node scripts/run-agent.ts scout",
     "evaluator": "ts-node scripts/run-agent.ts evaluator",
     "planner": "ts-node scripts/run-agent.ts planner",
+    "builder": "ts-node scripts/run-agent.ts builder",
     "pipeline": "ts-node scripts/run-pipeline.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
