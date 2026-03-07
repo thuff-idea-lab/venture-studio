@@ -3,6 +3,11 @@ import { logger } from '../../../lib/logger';
 import { enrichRawPost } from '../prefilter';
 import type { OpportunityBucket, RawPost } from '../types';
 
+interface RedditAccessToken {
+  token: string;
+  expiresAt: number;
+}
+
 interface RedditListingChild {
   data: RedditPostData;
 }
@@ -158,6 +163,7 @@ const FALLBACK_BUCKET_PATTERNS: Record<OpportunityBucket, RegExp[]> = {
 };
 
 const REQUEST_DELAY_MS = 250;
+const REDDIT_TOKEN_REFRESH_BUFFER_MS = 60_000;
 const QUERY_STOP_WORDS = new Set([
   'i',
   'a',
@@ -184,6 +190,8 @@ const QUERY_STOP_WORDS = new Set([
   'worth',
   'list',
 ]);
+
+let redditAccessToken: RedditAccessToken | null = null;
 
 function hashSeed(value: string): number {
   let hash = 0;
@@ -215,8 +223,75 @@ async function sleep(ms: number): Promise<void> {
   await new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function getRedditUserAgent(): string {
+  return process.env.REDDIT_USER_AGENT?.trim()
+    || 'venture-studio/0.1 by thuff-idea-lab';
+}
+
+function hasAuthenticatedRedditConfig(): boolean {
+  return Boolean(process.env.REDDIT_CLIENT_ID?.trim() && process.env.REDDIT_SECRET?.trim());
+}
+
+async function getRedditAccessToken(): Promise<string | null> {
+  if (!hasAuthenticatedRedditConfig()) {
+    return null;
+  }
+
+  const now = Date.now();
+  if (redditAccessToken && redditAccessToken.expiresAt > now + REDDIT_TOKEN_REFRESH_BUFFER_MS) {
+    return redditAccessToken.token;
+  }
+
+  const clientId = process.env.REDDIT_CLIENT_ID!.trim();
+  const clientSecret = process.env.REDDIT_SECRET!.trim();
+  const body = new URLSearchParams({ grant_type: 'client_credentials' });
+
+  const response = await axios.post<{ access_token: string; expires_in: number }>(
+    'https://www.reddit.com/api/v1/access_token',
+    body.toString(),
+    {
+      auth: {
+        username: clientId,
+        password: clientSecret,
+      },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': getRedditUserAgent(),
+      },
+      timeout: 10000,
+    }
+  );
+
+  redditAccessToken = {
+    token: response.data.access_token,
+    expiresAt: now + (response.data.expires_in * 1000),
+  };
+
+  return redditAccessToken.token;
+}
+
 async function fetchRedditChildren(path: string): Promise<RedditListingChild[]> {
   let lastError: string | null = null;
+
+  const accessToken = await getRedditAccessToken();
+
+  if (accessToken) {
+    try {
+      const response = await axios.get<{ data?: { children?: RedditListingChild[] } }>(`https://oauth.reddit.com${path}`, {
+        headers: {
+          Accept: 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'User-Agent': getRedditUserAgent(),
+        },
+        timeout: 10000,
+      });
+
+      return response.data?.data?.children ?? [];
+    } catch (err: any) {
+      lastError = err?.message ?? String(err);
+      logger.warn('scout', `Authenticated Reddit request failed for ${path}: ${lastError}`);
+    }
+  }
 
   for (const host of REDDIT_HOSTS) {
     const url = `${host}${path}`;
@@ -416,6 +491,10 @@ export async function fetchRedditIntentSearch(): Promise<RawPost[]> {
       bucketCounts[bucket] += fallbackAdded;
       logger.info('scout', `Reddit fallback listing fill [${bucket}]: ${beforeFallback} -> ${bucketCounts[bucket]}`);
     }
+  }
+
+  if (posts.length === 0 && !hasAuthenticatedRedditConfig()) {
+    logger.warn('scout', 'Reddit returned zero posts and no authenticated Reddit credentials are configured. Set REDDIT_CLIENT_ID and REDDIT_SECRET for CI.');
   }
 
   posts.sort((a, b) => (b.metadata?.prefilterScore ?? 0) - (a.metadata?.prefilterScore ?? 0));
