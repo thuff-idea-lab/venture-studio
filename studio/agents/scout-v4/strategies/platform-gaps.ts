@@ -54,6 +54,7 @@ function getDayOfYear(): number {
 }
 
 const SIGNAL_CAP = 20;
+const PER_SUBREDDIT_CAP = 3;
 
 export async function runPlatformGaps(): Promise<RawSignal[]> {
   logger.info('scout-v4', 'Running platform-gaps strategy');
@@ -66,8 +67,10 @@ export async function runPlatformGaps(): Promise<RawSignal[]> {
 
   for (const sub of subreddits) {
     if (signals.length >= SIGNAL_CAP) break;
+    let subSignals = 0;
     for (const query of queries) {
       if (signals.length >= SIGNAL_CAP) break;
+      if (subSignals >= PER_SUBREDDIT_CAP) break;
       try {
         const results = await searchReddit({
           query,
@@ -77,7 +80,9 @@ export async function runPlatformGaps(): Promise<RawSignal[]> {
           limit: 10,
           strategy: STRATEGY,
         });
-        signals.push(...results);
+        const allowed = results.slice(0, PER_SUBREDDIT_CAP - subSignals);
+        signals.push(...allowed);
+        subSignals += allowed.length;
       } catch (err: any) {
         logger.warn('scout-v4', `Platform gaps search failed (${sub}): ${err.message}`);
       }

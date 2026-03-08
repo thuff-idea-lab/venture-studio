@@ -53,7 +53,7 @@ export async function runEvaluatorV4(): Promise<void> {
 
     // Build final result with validation modifiers + hard gates
     const validation = idea.validation_data ?? {};
-    const result = buildEvaluationResult(idea.id, llmEval, validation, WEIGHTS);
+    const result = buildEvaluationResult(idea.id, llmEval, validation, WEIGHTS, idea.title);
     results.push(result);
 
     logger.info('evaluator-v4', `${result.recommendation} (${result.score_final}) — ${idea.title}`, {

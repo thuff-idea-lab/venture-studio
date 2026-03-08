@@ -110,6 +110,8 @@ export async function runPainMining(): Promise<RawSignal[]> {
   logger.info('scout-v4', `Pain mining: ${selectedQueries.length} queries × ${subreddits.length} subreddits`);
 
   const signals: RawSignal[] = [];
+  const PER_SUBREDDIT_CAP = 4;
+  const subSignalCounts: Record<string, number> = {};
 
   // Reddit searches
   for (const query of selectedQueries) {
@@ -119,6 +121,8 @@ export async function runPainMining(): Promise<RawSignal[]> {
     const subSample = seededPick(subreddits, 3, dayOfYear + query.length);
     for (const sub of subSample) {
       if (signals.length >= STRATEGY_CAP) break;
+      const count = subSignalCounts[sub] ?? 0;
+      if (count >= PER_SUBREDDIT_CAP) continue;
       try {
         const results = await searchReddit({
           query,
@@ -128,7 +132,9 @@ export async function runPainMining(): Promise<RawSignal[]> {
           limit: 10,
           strategy: STRATEGY,
         });
-        signals.push(...results);
+        const allowed = results.slice(0, PER_SUBREDDIT_CAP - count);
+        signals.push(...allowed);
+        subSignalCounts[sub] = count + allowed.length;
       } catch (err: any) {
         logger.warn('scout-v4', `Pain mining Reddit search failed: ${err.message}`);
       }

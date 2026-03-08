@@ -33,11 +33,12 @@ SCORE EACH DIMENSION 1-10:
    - 7-8: Clear, focused V1 achievable in 20-30 hours
    - 9-10: Dead simple V1 in under 15 hours — CRUD app, calculator, template, or single-purpose tool
 
-4. revenue_path (weight: 15%)
-   - 1-3: "Maybe ads" or "freemium somehow" — no specific willingness to pay
-   - 4-6: Plausible path but unproven ("subscription for premium features")
-   - 7-8: Clear value-for-money trade — user saves time/money worth more than the price
-   - 9-10: Users are already paying for worse alternatives, or the ROI is obvious and immediate
+4. revenue_path (weight: 20%)
+   - 1-3: No one would pay for this. The "product" is really free content (a guide, checklist, or reminder). Or the monetization is "premium features" without naming what those features are.
+   - 4-5: Plausible payment but unproven. Users MIGHT pay, but there's no evidence they pay for similar things today. Subscription for vague "premium" benefits.
+   - 6-7: Clear value trade — user saves measurable time or money worth more than the price. But the pricing model is standard and competitors exist.
+   - 8-9: Users are already paying for worse alternatives. The ROI is obvious and immediate. Specific price anchored to specific value.
+   - 10: Users are actively looking for this and budget exists (e.g., businesses with software budgets, not consumers wanting free tools).
 
 5. distribution (weight: 15%)
    - 1-3: "SEO" or "social media" with no specifics

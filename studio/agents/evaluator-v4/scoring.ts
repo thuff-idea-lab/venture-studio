@@ -109,17 +109,41 @@ export function scoreToRecommendation(score: number): Recommendation {
 }
 
 /**
+ * Detect anti-patterns that the LLM tends to overlook.
+ * Returns a penalty (negative number) to subtract from the score.
+ */
+function computeAntiPatternPenalty(llmEval: LLMEvaluation, ideaTitle: string): number {
+  let penalty = 0;
+
+  // Notification/reminder-only products — LLM over-scores these
+  const reminderPatterns = /\b(reminder|notification|motivat|accountab|nudge)\b/i;
+  if (reminderPatterns.test(ideaTitle) && llmEval.scores.revenue_path <= 6) {
+    penalty -= 5;
+  }
+
+  // Generic feedback/complaint tools — no buyer
+  const feedbackPatterns = /\b(feedback|complaint|support.*tool|survey)\b/i;
+  if (feedbackPatterns.test(ideaTitle) && llmEval.scores.revenue_path <= 6) {
+    penalty -= 4;
+  }
+
+  return penalty;
+}
+
+/**
  * Assemble the final evaluation result.
  */
 export function buildEvaluationResult(
   ideaId: string,
   llmEval: LLMEvaluation,
   validation: ValidationData,
-  weights: ScoringWeights
+  weights: ScoringWeights,
+  ideaTitle: string = ''
 ): EvaluationResult {
   const rawScore = computeRawScore(llmEval.scores, weights);
   const validationModifier = computeValidationModifier(validation);
-  const finalScore = Math.max(0, Math.min(100, rawScore + validationModifier));
+  const antiPatternPenalty = computeAntiPatternPenalty(llmEval, ideaTitle);
+  const finalScore = Math.max(0, Math.min(100, rawScore + validationModifier + antiPatternPenalty));
 
   // Check hard gates
   const hardGate = checkHardGates(validation, rawScore);

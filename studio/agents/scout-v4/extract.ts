@@ -35,6 +35,7 @@ EVALUATE — ALL must be true to proceed:
 4. There is at least one realistic, specific way to reach the first 100 users
 5. There is at least one plausible way this makes $100+/month within 6 months
 6. The founder can build this without specialist expertise or regulatory compliance
+7. Someone would realistically pay money for this — not just "want" it for free
 
 AUTO-REJECT — return REJECT if any of these are true:
 - the signal is generic news, trend commentary, or culture discussion
@@ -45,6 +46,12 @@ AUTO-REJECT — return REJECT if any of these are true:
 - the distribution path is vague ("SEO", "social media", "communities")
 - the idea is a broad software category without a specific wedge
 - the idea requires building a two-sided marketplace from scratch
+- the product is notification/reminder-only (just sends messages) with no workflow, data, or decision-making value
+- the idea is a generic wellness, motivation, or accountability tool (fitness reminders, habit nudges, motivational bots)
+- the idea is a "feedback collection" or "complaint aggregation" tool with no clear paying customer
+- the signal is someone complaining about a platform they want to LEAVE — tools for churning users have no long-term market
+- the product is a "guide" or "how-to" that could be a free blog post or YouTube video instead of software
+- the monetization boils down to "freemium" or "premium features" without naming what the user gets that's worth paying for
 
 TITLE RULES:
 - must be concrete, specific, and noun-heavy
@@ -52,6 +59,25 @@ TITLE RULES:
 - should describe what the product IS, not how great it is
 - good: "Appointment Reminder Bot for Dog Groomers"
 - bad: "AI-Powered Scheduling Solution"
+
+BUILD HOURS CALIBRATION — use these anchors:
+- Spreadsheet/Notion template with formulas: 8-15 hours
+- Static calculator or comparison page: 10-20 hours
+- Simple CRUD web app (no auth, no payments): 15-25 hours
+- Web app with auth + basic dashboard: 25-35 hours
+- Chrome extension with DOM manipulation: 20-35 hours
+- Bot (Discord/Slack/Telegram) with simple commands: 15-25 hours
+- Web app with auth + payments + multi-user: 35-50 hours
+- Chrome extension with video/media processing: 40-60 hours
+- SaaS with integrations to external APIs: 35-55 hours
+Pick the closest anchor. DO NOT default to 30 for everything.
+
+MONETIZATION RULES:
+- "monthly subscription" alone is not specific enough
+- name the EXACT value exchange: what does the user get that's worth $X?
+- one-time purchase, per-use fees, templates, consulting upsell — all valid
+- do NOT default to "$5/month subscription for premium features"
+- if you can't name a specific thing worth paying for, REJECT the idea
 
 If the signal does NOT qualify, return only: REJECT
 
@@ -63,7 +89,7 @@ If it qualifies, return ONLY valid JSON (no markdown, no explanation):
   "pain": "what they do today that sucks — concrete, not abstract",
   "frequency": "how often they hit this pain (daily | weekly | monthly | per_transaction | per_project)",
   "v1_description": "smallest useful first version in 1-2 sentences",
-  "monetization": "specific revenue path — not just 'subscription' but what they pay for and why",
+  "monetization": "specific revenue path — name the exact value exchange, not just 'subscription'",
   "distribution": "specific path to first 100 users — name the community, channel, or outreach method",
   "why_now": "why this is actionable right now",
   "build_hours_estimate": 0,

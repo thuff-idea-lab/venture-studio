@@ -84,8 +84,8 @@ export interface ScoringWeights {
 export const WEIGHTS: ScoringWeights = {
   problem_clarity: 0.20,
   target_user: 0.15,
-  build_feasibility: 0.20,
-  revenue_path: 0.15,
+  build_feasibility: 0.15,   // reduced — "easy to build" shouldn't carry bad ideas
+  revenue_path: 0.20,        // increased — willingness-to-pay is the biggest quality signal
   distribution: 0.15,
   timing: 0.15,
 };
