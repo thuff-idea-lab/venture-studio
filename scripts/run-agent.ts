@@ -8,7 +8,7 @@ const agentName = process.argv[2];
 
 async function main() {
   if (!agentName) {
-    console.error('Usage: ts-node scripts/run-agent.ts <scout|scout-v4|evaluator|planner|builder>');
+    console.error('Usage: ts-node scripts/run-agent.ts <scout|scout-v4|evaluator|evaluator-v4|planner|builder>');
     process.exit(1);
   }
 
@@ -29,6 +29,11 @@ async function main() {
       case 'evaluator': {
         const { runEvaluator } = await import('../studio/agents/evaluator');
         await runEvaluator();
+        break;
+      }
+      case 'evaluator-v4': {
+        const { runEvaluatorV4 } = await import('../studio/agents/evaluator-v4');
+        await runEvaluatorV4();
         break;
       }
       case 'planner': {
