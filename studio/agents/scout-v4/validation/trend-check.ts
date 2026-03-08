@@ -3,16 +3,23 @@ import type { ExtractedIdea, TrendSignal } from '../types';
 
 /**
  * Extract the most representative keyword from an idea for trend checking.
+ * Google Trends works best with 1-3 word queries (broad category terms).
  */
 function extractPrimaryKeyword(idea: ExtractedIdea): string {
-  // Use the first few meaningful words of the title
+  // Strip generic words that dilute the trend signal
+  const skipWords = new Set(['for', 'the', 'and', 'tool', 'app', 'bot', 'tracker', 'generator', 'calculator', 'comparison', 'directory', 'template', 'assistant', 'manager', 'planner', 'checker', 'reminder']);
+
   const words = idea.title
     .replace(/[^\w\s]/g, '')
     .split(/\s+/)
-    .filter(w => w.length > 2)
-    .slice(0, 4);
+    .filter(w => w.length > 2 && !skipWords.has(w.toLowerCase()));
 
-  return words.join(' ') || idea.product_shape.replace(/_/g, ' ');
+  // Take 2-3 core concept words (not product-shape words)
+  const core = words.slice(0, 3).join(' ');
+  if (core.length >= 4) return core;
+
+  // Fallback: use product shape as broad category
+  return idea.product_shape.replace(/_/g, ' ');
 }
 
 /**

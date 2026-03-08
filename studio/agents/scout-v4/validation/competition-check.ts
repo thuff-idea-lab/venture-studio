@@ -3,13 +3,23 @@ import type { ExtractedIdea, CompetitionSignal } from '../types';
 
 /**
  * Build the search query to check competition for an idea.
+ * Generates a short, natural query like what someone would google.
  */
 function buildCompetitionQuery(idea: ExtractedIdea): string {
-  // Combine target user + product shape for a natural competition query
   const shape = idea.product_shape.replace(/_/g, ' ');
 
-  if (idea.target_user) {
-    return `${idea.target_user} ${shape}`;
+  // Extract the core concept from title (first 3 meaningful words)
+  const titleWords = idea.title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !['for', 'the', 'and', 'tool', 'app'].includes(w));
+
+  const titleCore = titleWords.slice(0, 3).join(' ');
+
+  // Build query: core concept + shape (e.g. "invoice tracker web app")
+  if (titleCore) {
+    return `${titleCore} ${shape}`;
   }
 
   return idea.title.toLowerCase();
