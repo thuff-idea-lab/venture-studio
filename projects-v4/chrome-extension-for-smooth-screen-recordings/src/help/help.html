@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmoothScreen Recorder — Help</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="help.css">
+</head>
+<body>
+  <div class="help-container">
+    <header class="help-header">
+      <img src="../assets/icon48.png" alt="SmoothScreen" width="32" height="32">
+      <div>
+        <h1>Help &amp; FAQ</h1>
+        <p class="subtitle">SmoothScreen Recorder</p>
+      </div>
+    </header>
+
+    <!-- Getting Started -->
+    <section class="help-section">
+      <h2>Getting Started</h2>
+      <ol class="steps-list">
+        <li>
+          <strong>Click the SmoothScreen icon</strong> in your Chrome toolbar to open the recorder popup.
+        </li>
+        <li>
+          <strong>Adjust your settings</strong> before recording — set your preferred zoom level and cursor smoothness using the Settings page (gear icon in the popup footer).
+        </li>
+        <li>
+          <strong>Click "Start Recording"</strong> and choose which screen, window, or tab you want to capture.
+        </li>
+        <li>
+          <strong>Record your demo</strong> — SmoothScreen will automatically apply smooth cursor animations and natural zooms as you navigate.
+        </li>
+        <li>
+          <strong>Click "Stop Recording"</strong> when you're done. Your recording will automatically download as a .webm file.
+        </li>
+      </ol>
+    </section>
+
+    <!-- FAQ -->
+    <section class="help-section">
+      <h2>Frequently Asked Questions</h2>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What does the Zoom Level setting do?
+        </button>
+        <div class="faq-answer">
+          <p>Zoom Level controls how much the recording zooms in when your cursor stays focused on one area. At 100%, there's no zoom effect. At 200%, the view zooms to 2x magnification. The zoom transitions happen smoothly and automatically based on your cursor behavior.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What does Cursor Smoothness do?
+        </button>
+        <div class="faq-answer">
+          <p>Cursor Smoothness controls how much your raw mouse movement is smoothed out in the recording. A setting of 1 keeps your cursor movements nearly raw, while 10 applies heavy smoothing for silky-smooth cursor motion. Higher values introduce a slight delay but look much more polished.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          What format are recordings saved in?
+        </button>
+        <div class="faq-answer">
+          <p>Recordings are saved as .webm files (VP9 codec). This format is widely supported and offers excellent quality at reasonable file sizes. You can convert to MP4 using free tools like HandBrake or CloudConvert if needed.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Why can't I start a recording?
+        </button>
+        <div class="faq-answer">
+          <p>If you see "Unable to start recording," check these things:</p>
+          <ul>
+            <li>Make sure you grant screen capture permissions when prompted.</li>
+            <li>Check that no other application is using your screen capture.</li>
+            <li>Try reloading the page and clicking the extension icon again.</li>
+            <li>If your trial has expired, you'll need to upgrade to continue recording.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          How does the free trial work?
+        </button>
+        <div class="faq-answer">
+          <p>You get 7 days of full access to all recording features when you first install the extension. After the trial ends, you can upgrade for a one-time payment of $29.99 or subscribe at $4.99/month for additional cloud storage and advanced editing tools.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Does this record audio?
+        </button>
+        <div class="faq-answer">
+          <p>V1 focuses on video capture with cursor enhancement. Audio recording is planned for a future release.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question" aria-expanded="false">
+          Where are my recordings stored?
+        </button>
+        <div class="faq-answer">
+          <p>Recordings are downloaded directly to your default Downloads folder. SmoothScreen does not store recordings on any server — everything stays on your machine. Cloud storage is available as a paid add-on in a future update.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="help-section">
+      <h2>Need More Help?</h2>
+      <p>If your question isn't answered here, reach out to us:</p>
+      <div class="contact-options">
+        <a href="mailto:support@smoothscreenrecorder.com" class="contact-link">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M1 4L8 9L15 4" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+          support@smoothscreenrecorder.com
+        </a>
+      </div>
+    </section>
+
+    <footer class="help-footer">
+      <p>&copy; 2026 SmoothScreen Recorder. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <script src="help.js"></script>
+</body>
+</html>

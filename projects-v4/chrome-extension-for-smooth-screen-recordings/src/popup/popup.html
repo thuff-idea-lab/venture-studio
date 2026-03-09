@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmoothScreen Recorder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="logo-area">
+        <img src="../assets/icon48.png" alt="SmoothScreen" class="logo-icon" width="28" height="28">
+        <h1>SmoothScreen</h1>
+      </div>
+      <span class="tagline">Effortless Screen Recordings</span>
+    </header>
+
+    <!-- Trial Banner (hidden when paid) -->
+    <div id="trial-banner" class="trial-banner hidden">
+      <span id="trial-text">7 days left in your free trial</span>
+      <a href="#" id="upgrade-link" class="upgrade-link">Upgrade</a>
+    </div>
+
+    <!-- Recording Controls -->
+    <main class="popup-main">
+      <!-- Status -->
+      <div id="status-container" class="status-container">
+        <div id="status-indicator" class="status-indicator idle"></div>
+        <span id="status-text" class="status-text">Ready to record</span>
+      </div>
+
+      <!-- Timer -->
+      <div id="timer" class="timer hidden">00:00</div>
+
+      <!-- Primary Action -->
+      <button id="btn-record" class="btn btn-primary btn-large">
+        <svg id="icon-record" class="btn-icon" width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7" fill="currentColor"/>
+        </svg>
+        <svg id="icon-stop" class="btn-icon hidden" width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <rect x="3" y="3" width="12" height="12" rx="2" fill="currentColor"/>
+        </svg>
+        <span id="btn-record-label">Start Recording</span>
+      </button>
+
+      <!-- Settings Summary -->
+      <div class="settings-preview">
+        <div class="setting-chip">
+          <span class="chip-label">Zoom</span>
+          <span id="zoom-value" class="chip-value">150%</span>
+        </div>
+        <div class="setting-chip">
+          <span class="chip-label">Smoothness</span>
+          <span id="smoothness-value" class="chip-value">5/10</span>
+        </div>
+        <div class="setting-chip">
+          <span class="chip-label">Highlight</span>
+          <span id="highlight-value" class="chip-value">On</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer Nav -->
+    <footer class="popup-footer">
+      <button id="btn-settings" class="footer-btn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M6.5 1L7.1 3.1C7.4 3.2 7.7 3.3 8 3.5L10 2.5L11.5 4L10.5 6C10.7 6.3 10.8 6.6 10.9 6.9L13 7.5V9.5L10.9 10.1C10.8 10.4 10.7 10.7 10.5 11L11.5 13L10 14.5L8 13.5C7.7 13.7 7.4 13.8 7.1 13.9L6.5 16H4.5L3.9 13.9C3.6 13.8 3.3 13.7 3 13.5L1 14.5L-0.5 13L0.5 11C0.3 10.7 0.2 10.4 0.1 10.1L-2 9.5V7.5L0.1 6.9C0.2 6.6 0.3 6.3 0.5 6L-0.5 4L1 2.5L3 3.5C3.3 3.3 3.6 3.2 3.9 3.1L4.5 1H6.5Z" transform="translate(2.5, 0)" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <circle cx="8" cy="8.5" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+        <span>Settings</span>
+      </button>
+      <button id="btn-help" class="footer-btn" title="Help">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/>
+          <text x="8" y="11.5" text-anchor="middle" font-size="9" font-weight="600" fill="currentColor">?</text>
+        </svg>
+        <span>Help</span>
+      </button>
+    </footer>
+
+    <!-- Error Display -->
+    <div id="error-container" class="error-container hidden">
+      <span id="error-text"></span>
+      <button id="error-dismiss" class="error-dismiss">&times;</button>
+    </div>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
