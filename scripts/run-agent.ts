@@ -41,6 +41,11 @@ async function main() {
         await runPlanner();
         break;
       }
+      case 'planner-v4': {
+        const { runPlannerV4 } = await import('../studio/agents/planner-v4');
+        await runPlannerV4();
+        break;
+      }
       case 'builder': {
         const { runBuilder } = await import('../studio/agents/builder');
         await runBuilder();
