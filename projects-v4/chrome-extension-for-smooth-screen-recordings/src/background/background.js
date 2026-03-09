@@ -46,12 +46,21 @@ function handleGetState(sendResponse) {
 // ── Start Recording ──
 async function handleStartRecording(sendResponse) {
   try {
-    // Request desktop capture via desktopCapture API
+    // Get the active tab so we can pass it to chooseDesktopMedia
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // Respond immediately — the popup will close when the picker opens,
+    // so we can't send responses after that. The popup checks GET_STATE on reopen.
+    sendResponse({ success: true, pending: true });
+
+    // Show the desktop media picker (this opens a system dialog)
     chrome.desktopCapture.chooseDesktopMedia(
       ['screen', 'window', 'tab'],
-      async (streamId, options) => {
+      activeTab,
+      async (streamId) => {
         if (!streamId) {
-          sendResponse({ success: false, error: 'Screen share was cancelled.' });
+          // User cancelled the picker — nothing to do
+          updateBadge(false);
           return;
         }
 
@@ -75,13 +84,11 @@ async function handleStartRecording(sendResponse) {
 
             // Notify content scripts to start tracking cursor
             broadcastToContentScripts({ type: 'START_CURSOR_TRACKING' });
-
-            sendResponse({ success: true });
-          } else {
-            sendResponse({ success: false, error: response?.error || 'Failed to start capture.' });
+            updateBadge(true);
           }
         } catch (err) {
-          sendResponse({ success: false, error: err.message });
+          console.error('Failed to start capture:', err);
+          updateBadge(false);
         }
       }
     );
@@ -103,6 +110,7 @@ async function handleStopRecording(sendResponse) {
 
     // Notify content scripts to stop tracking cursor
     broadcastToContentScripts({ type: 'STOP_CURSOR_TRACKING' });
+    updateBadge(false);
 
     sendResponse({ success: true });
   } catch (err) {
@@ -161,6 +169,16 @@ async function broadcastToContentScripts(message) {
         // Tab may not have content script, ignore
       });
     }
+  }
+}
+
+// ── Badge ──
+function updateBadge(recording) {
+  if (recording) {
+    chrome.action.setBadgeText({ text: 'REC' });
+    chrome.action.setBadgeBackgroundColor({ color: '#DC3545' });
+  } else {
+    chrome.action.setBadgeText({ text: '' });
   }
 }
 

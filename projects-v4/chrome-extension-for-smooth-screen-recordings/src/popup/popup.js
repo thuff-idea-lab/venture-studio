@@ -99,16 +99,23 @@ btnRecord.addEventListener('click', async () => {
 
 async function startRecording() {
   try {
+    // Show a transitional state — the picker dialog will open and the popup
+    // will close. When the user reopens the popup, init() checks GET_STATE.
+    setStatusUI('processing', 'Opening screen picker...');
+    btnRecord.disabled = true;
+
     const response = await chrome.runtime.sendMessage({ type: 'START_RECORDING' });
     if (response && response.success) {
-      setRecordingUI(true);
-      seconds = 0;
-      startTimer();
+      // The picker is now showing. The popup will close when it appears.
+      // If somehow we're still open, show the waiting state.
+      setStatusUI('processing', 'Select a screen to record...');
     } else {
       showError(response?.error || 'Unable to start recording. Please check permissions.');
+      btnRecord.disabled = false;
     }
   } catch (err) {
     showError('Unable to start recording. Please check permissions.');
+    btnRecord.disabled = false;
   }
 }
 
